@@ -25,7 +25,7 @@ test("a list without $defaults replaces the built-in rules: an error for soft_de
   assert.deepEqual(l.findings.map((f) => [f.severity, f.keyPath, f.line]), [["error", "autoMode.soft_deny", 4], ["error", "autoMode.hard_deny", 5], ["warning", "autoMode.allow", 3], ["warning", "autoMode.environment", 6]]);
   const soft = find(l, "replaces-defaults");
   assert.match(soft.message, new RegExp(`replaces the ${MEASURED.builtin.soft_deny} built-in soft block rules`));
-  assert.match(soft.message, /about 64,817 characters/);
+  assert.match(soft.message, new RegExp(`about ${MEASURED.removedChars.soft_deny.toLocaleString("en-US")} characters`));
   assert.match(soft.message, new RegExp(`Claude Code ${MEASURED.version.replace(/\./g, "\\.")}`));
   assert.match(soft.fix, /"\$defaults"/);
   assert.equal(soft.evidence, "binary");

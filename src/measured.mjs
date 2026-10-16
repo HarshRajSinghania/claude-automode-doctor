@@ -11,19 +11,21 @@ export const MEASURED = {
   // `claude auto-mode defaults`: how many built-in rules each section has
   builtin: { allow: 17, soft_deny: 72, hard_deny: 1, environment: 21 },
 
-  // The classifier's system prompt without autoMode settings, and how many characters of it a list without
-  // "$defaults" removes (the list's own entry added back is not subtracted: one short line)
+  // The classifier's system prompt without autoMode settings, and how many characters of the built-in rules (line breaks included) a
+  // list without "$defaults" takes out of it
   prompt: { chars: 140173, blocks: 3, totalSystemChars: 140489 },
-  removedChars: { allow: 8002, soft_deny: 64817, hard_deny: 5268, environment: 3551 },
+  removedChars: { allow: 8019, soft_deny: 64833, hard_deny: 5284, environment: 3566 },
 
-  // The two requests of a classified command, as the fake API received them
+  // The two requests of a classified command, as the fake API received them. The system prompt is three blocks; the last one
+  // (242 characters) names the operating system user, so the total differs by a few characters between machines. userChars is the user
+  // message of a session of one prompt ("run it") and one command, which grows with the session.
   stages: {
-    one: { model: "claude-sonnet-5", maxTokens: 64, stopSequence: "</severity>", userChars: 0 },
-    two: { model: "claude-sonnet-5", maxTokens: 8192, userChars: 0 },
+    one: { model: "claude-sonnet-5", maxTokens: 64, stopSequence: "</severity>", userChars: 299 },
+    two: { model: "claude-sonnet-5", maxTokens: 8192, userChars: 530 },
   },
-  // Severity the fake classifier answered at stage one, and what Claude Code did: 5, 10 and 20 were allowed by stage one
-  // alone (one request); 30 and above went on to stage two (two requests).
-  stageOneClears: { upTo: 20, goesOnFrom: 30 },
+  // Severity the fake classifier answered at stage one, and what Claude Code did: up to 25 was allowed by stage one
+  // alone (one request); 26 and above went on to stage two (two requests).
+  stageOneClears: { upTo: 25, goesOnFrom: 26 },
   // A classifier that answers something that is not a verdict: attempts before Claude Code gives up
   attempts: { stageOne: 5, stageTwo: 5 },
 };
