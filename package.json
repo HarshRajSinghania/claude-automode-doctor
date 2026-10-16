@@ -1,0 +1,40 @@
+{
+  "name": "claude-automode-doctor",
+  "version": "1.0.0",
+  "description": "What Claude Code's auto mode and its classifier decided, from your transcripts: every tool decision by source, the commands the classifier refused and the refusals that were no verdict, why a command goes to the classifier, a lint of the autoMode settings, and what classification costs. Zero tokens.",
+  "type": "module",
+  "bin": {
+    "claude-automode-doctor": "bin/claude-automode-doctor.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    ".claude-plugin",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "repository": "github:nrzz/claude-automode-doctor",
+  "homepage": "https://nrzz.github.io/claude-code-toolkit/",
+  "bugs": "https://github.com/nrzz/claude-automode-doctor/issues",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "auto-mode",
+    "classifier",
+    "permissions",
+    "safety",
+    "transcripts",
+    "settings",
+    "diagnostics"
+  ],
+  "author": "Naresh Prabu",
+  "license": "MIT"
+}
