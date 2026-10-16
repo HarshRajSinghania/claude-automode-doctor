@@ -1,0 +1,70 @@
+name: Bug report
+description: Something in claude-automode-doctor does not work as described
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please remove secrets, tokens and private paths from anything you paste. A report holds the commands that were refused, so read it first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead. For a wrong answer from `why`, paste the command, the settings that make it (a few lines is enough) and what Claude Code did with the command. For a transcript that is read wrongly, paste the one tool call and its result from the transcript, with anything private removed.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Put this in settings.json ...
+        2. Run claude-automode-doctor why "..." ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: claude
+    attributes:
+      label: Claude Code version
+      description: The output of `claude --version`, or the desktop app's version.
+      placeholder: 2.1.299
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where do you run Claude Code?
+      options:
+        - Terminal
+        - Desktop app
+        - VS Code
+        - JetBrains
+        - Web
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Operating system and Node version
+      placeholder: "Windows 11, Node 22.11 (node --version)"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - npx from GitHub
+        - Claude Code plugin marketplace
+        - The toolkit setup page (npx -y github:nrzz/claude-code-toolkit)
+        - git clone
+        - Other
+  - type: textarea
+    id: output
+    attributes:
+      label: Output or logs
+      description: The exact output, with secrets removed. `claude-automode-doctor report --json` or `why "<command>" --json` helps.
+      render: text

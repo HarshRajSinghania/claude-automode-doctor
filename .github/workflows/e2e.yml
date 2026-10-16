@@ -1,0 +1,42 @@
+name: e2e
+
+# The checks that run the real Claude Code: the decisions it writes to its transcripts (one scenario for each source and each
+# result of the classifier), the autoMode block ($defaults, which files are read, wrong types), what a classified command
+# costs, that the plugin validates and its skill hands the model the report, report and suggest on a real session, and the
+# table of commands that `why` is held to. They cost nothing: Claude Code talks to a fake server on 127.0.0.1. Optional by
+# design: if the binary cannot be installed, the checks skip. Weekly, so a Claude Code release that changes how auto mode
+# decides shows up here.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  claude:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install the Claude Code CLI (the checks skip if this fails)
+        run: npm install -g @anthropic-ai/claude-code
+        continue-on-error: true
+      - run: claude --version
+        continue-on-error: true
+      - name: Decisions, autoMode block, plugin, report and suggest against the real binary
+        run: node --test test/e2e-claude.test.mjs test/e2e-automode.test.mjs test/e2e-plugin.test.mjs test/e2e-suggest.test.mjs
+        env:
+          E2E_CLAUDE: claude
+      - name: The table of commands against the real binary
+        run: node --test test/auto-oracle.test.mjs
+        env:
+          E2E_CLAUDE: claude
