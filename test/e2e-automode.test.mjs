@@ -202,29 +202,32 @@ test("auto mode tells Claude it can do much of its work through Bash (the Bash-f
   } finally { await api.close(); }
 });
 
-test("a path-scoped rule file (.claude/rules/*.md with paths:) is loaded when Claude writes a matching file with Write, and not when a Bash redirection does (issue 88565, put to the binary)", { skip: skip(), timeout: 300000 }, async (t) => {
+test("a path-scoped rule file (.claude/rules/*.md with paths:) is loaded when Claude writes a matching file with Write, and not when a Bash redirection does (issue 88565, put to the binary)", { skip: skip(), timeout: 400000 }, async (t) => {
   const rule = '---\npaths:\n  - "**/*.txt"\n---\nCAD-RULE: be careful with text files.\n';
-  const loaded = async (call, files = {}) => {
+  // the InstructionsLoaded events for the rule file in one session, each with the file that triggered it
+  const session = async (calls, files = {}) => {
     const sb = sandbox("rules");
     put(path.join(sb.work, ".claude", "rules", "text.md"), rule);
     for (const [name, text] of Object.entries(files)) put(path.join(sb.work, name), text);
     put(sb.user, { hooks: { InstructionsLoaded: [{ hooks: [recorder("loaded")] }] } });
-    const api = await fakeApi({ calls: [call] });
+    const api = await fakeApi({ calls });
     try {
-      await runClaude(sb, api, ["-p", "run it", "--output-format", "json", "--permission-mode", "auto"]);
+      await runClaude(sb, api, ["-p", "run it", "--output-format", "json", "--permission-mode", "auto", "--max-turns", "5"]);
       return readLog(sb).filter((l) => l.input && l.input.hook_event_name === "InstructionsLoaded" && /text\.md$/.test(l.input.file_path || ""));
     } finally { await api.close(); }
   };
-  const viaWrite = await loaded({ tool: "Write", input: { file_path: "z1.txt", content: "x" } });
-  const viaBash = await loaded(bash("echo viabash > y1.txt"));
-  const viaRead = await loaded({ tool: "Read", input: { file_path: "r1.txt" } }, { "r1.txt": "x\n" });
-  t.diagnostic(`Claude Code ${claudeInfo().number}: the rule was loaded ${viaWrite.length}x by Write of a new file, ${viaRead.length}x by Read of an existing one, ${viaBash.length}x by a Bash redirection`);
-  assert.equal(viaBash.length, 0, "a redirection into a matching file does not");
+  // a redirection first and a Write after it, in one session: the rule loads once, and the file that triggered it says which of the
+  // two did it. The hook runs beside the session and is not always seen before the process exits, so a session with no event is run again.
+  let both = [];
+  for (let attempt = 0; attempt < 3 && both.length === 0; attempt++) both = await session([bash("echo viabash > y1.txt"), { tool: "Write", input: { file_path: "z1.txt", content: "x" } }]);
+  const reading = await session([{ tool: "Read", input: { file_path: "r1.txt" } }], { "r1.txt": "x\n" });
+  t.diagnostic(`Claude Code ${claudeInfo().number}: after a Bash redirection into y1.txt and a Write of z1.txt the rule was loaded ${both.length}x${both.length ? `, triggered by ${both.map((l) => path.basename(l.input.trigger_file_path || "?")).join(", ")}` : ""}; a Read of an existing text file loaded it ${reading.length}x`);
+  assert.ok(!both.some((l) => /y1\.txt$/.test(l.input.trigger_file_path || "")), "a redirection into a matching file does not load the rule");
   // what Write does is what 2.1.295 and 2.1.299 did; a newer version may load the rule on other occasions, and the diagnostic says
   if (RECORDED.includes(claudeInfo().number)) {
-    assert.equal(viaWrite.length, 1, "Write loads the rule");
-    assert.equal(viaWrite[0].input.load_reason, "path_glob_match");
-    assert.match(viaWrite[0].input.trigger_file_path, /z1\.txt$/);
+    assert.equal(both.length, 1, "Write loads the rule");
+    assert.equal(both[0].input.load_reason, "path_glob_match");
+    assert.match(both[0].input.trigger_file_path, /z1\.txt$/);
   }
 });
 

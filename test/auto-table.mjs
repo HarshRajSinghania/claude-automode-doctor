@@ -14,7 +14,8 @@
 // answer on 2.1.295. A row with `v295` says what 2.1.295 did instead. A row with `platform: "win32"` is for the PowerShell
 // tool, which Claude Code offers on Windows; the oracle and the table test skip it elsewhere. A row with `posix` says what
 // Linux and macOS are expected to do where that differs from Windows (the other rows were recorded on Windows only; the
-// real-binary job in CI runs the table on Linux and macOS and shows where a row differs).
+// real-binary job in CI runs the table on Linux and macOS and shows where a row differs). A row with `offline` is not put to the
+// binary again by the oracle: its command names something outside the throwaway folders, or installs packages.
 //
 // Placeholders in strings: {WORK} the folder Claude starts in, {HOME} the home folder, {ROOT} the folder that holds both,
 // {CFG} Claude's config folder; add _POSIX for the form a Git Bash command uses (/c/Users/... on Windows).
@@ -1016,6 +1017,13 @@ each("ps-raw", NONE, [
   ["Remove-Item C:\\Windows\\cad-nothing", "classifier"],
   ["Remove-Item C:\\Windows", "refused"],
 ], {"tool":"PowerShell","platform":"win32"});
+
+// ---- rows the oracle does not put to the binary again --------------------------------------------------------------------
+// They were put to it once, on both versions, while the table was made. Their commands name something outside the throwaway
+// folders (a real top-level folder, the Windows folder) or install packages, and an approval by mistake on some other version or
+// system must not be able to touch that. The table test still checks what `why` says for them.
+export const isOffline = (r) => /^rmdir \/(usr|etc|tmp)?$/.test(r.command) || /^Remove-Item C:.Windows/.test(r.command) || (r.command === "npm install" && r.expect === "static");
+for (const r of rows) if (isOffline(r)) r.offline = true;
 
 // ---- the allow rules that were put to the binary, kept or dropped: derived from the "dropped" rows ----------------------
 /** [{ rule, command, dropped }]: the rule is dropped when auto mode starts exactly when the command it covers goes to the classifier. */

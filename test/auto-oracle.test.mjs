@@ -18,7 +18,7 @@ const wanted = (row, version) => {
 test("the decision table put to the binary: every row", { skip: skip(), timeout: 1800000 }, async (t) => {
   const version = claudeInfo().number;
   const known = RECORDED.includes(version);
-  const mine = rows.filter((r) => !(r.platform === "win32" && process.platform !== "win32"));
+  const mine = rows.filter((r) => !(r.platform === "win32" && process.platform !== "win32") && !r.offline);
   const results = await askAll(mine, { limit: process.platform === "win32" ? 6 : 4 });
   const differ = [];
   mine.forEach((row, i) => {

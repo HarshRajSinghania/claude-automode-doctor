@@ -26,8 +26,8 @@ claude-automode-doctor reads the decisions Claude Code records in its transcript
 | Part | Tokens | |
 | --- | --- | --- |
 | The tool: every command, `--json`, `--markdown` | 0 | It reads transcripts and settings files. It never calls Claude, opens no network connection and starts no process |
-| The skill in the model's request | 0 | `/automode-doctor:check` is user-only (`disable-model-invocation: true`) and its description is `Check auto mode decisions.`: 26 characters, about 7 tokens by characters / 4. With the plugin loaded, the request for a plain prompt had the same size as without it, the same tool list and no occurrence of `automode-doctor`. The sizes were 69,122 characters on Claude Code 2.1.295 and 69,652 on 2.1.299 on Windows (checked against a fake API, see below). `claude plugin details` still projects about 12 tokens "always-on" for the skill. The capture does not bear that out |
-| `/automode-doctor:check` | about 280 tokens once; about 784 at the cap | The model receives the report for the project and a 252-character instruction that asks for a reply of at most 10 lines. For a project with 7 decisions, 3 of them refused and 1 with no verdict, on Windows that was 1,009 characters in the skill block and 109 in the command block: 1,118 in all, about 280 tokens by characters / 4. The skill block holds the project's path (59 characters here) and the plugin's. The report is at most 17 lines (6 refused commands, 5 without a verdict) of at most 200 characters. A report at that cap, with long commands, was 3,026 characters in the skill block and 109 in the command block, 3,135 in all, about 784 tokens. These are characters divided by 4, an estimate, not a count by Claude's tokenizer. The same report in a terminal costs nothing: `claude-automode-doctor report` |
+| The skill in the model's request | 0 | `/automode-doctor:check` is user-only (`disable-model-invocation: true`) and its description is `Check auto mode decisions.`: 26 characters, about 7 tokens by characters / 4. With the plugin loaded, the request for a plain prompt had the same size as without it, the same tool list and no occurrence of `automode-doctor`. The sizes were 69,122 characters on Claude Code 2.1.295 and 69,652 on 2.1.299 on Windows, 64,688 on 2.1.301 on Linux and 65,667 on macOS (checked against a fake API, see below). `claude plugin details` still projects about 12 tokens "always-on" for the skill. The capture does not bear that out |
+| `/automode-doctor:check` | about 280 tokens once; about 784 at the cap | The model receives the report for the project and a 252-character instruction that asks for a reply of at most 10 lines. For a project with 7 decisions, 3 of them refused and 1 with no verdict, on Windows that was 1,009 characters in the skill block and 109 in the command block: 1,118 in all, about 280 tokens by characters / 4. The skill block holds the project's path (59 characters here) and the plugin's, so it was 1,009 characters on Linux and 1,062 on macOS in CI. The report is at most 17 lines (6 refused commands, 5 without a verdict) of at most 200 characters. A report at that cap, with long commands, was 3,026 characters in the skill block and 109 in the command block, 3,135 in all, about 784 tokens. These are characters divided by 4, an estimate, not a count by Claude's tokenizer. The same report in a terminal costs nothing: `claude-automode-doctor report` |
 
 What auto mode itself costs is a different matter and `cost` shows it: each command that reaches the classifier sends one or two requests of about 35,000 tokens each (a 140,489-character system prompt), see [`cost`](#cost).
 
@@ -166,10 +166,10 @@ By day          decisions   classifier: allowed  refused  no verdict
   2026-10-16                 9                     1        3           2
 
 Sessions
-  a868733d 2026-10-16 16:14 to 16:14      1 decisions  classifier 1 (0 allowed, 0 refused, 1 no verdict)  /home/me/shop
-  3f9c5d09 2026-10-16 16:14 to 16:14      1 decisions  classifier 1 (0 allowed, 0 refused, 1 no verdict)  /home/me/shop
-  77eb13a0 2026-10-16 16:14 to 16:14      2 decisions  classifier 2 (0 allowed, 2 refused, 0 no verdict)  /home/me/shop
-  81b3ad45 2026-10-16 16:14 to 16:14      5 decisions  classifier 2 (1 allowed, 1 refused, 0 no verdict)  /home/me/shop
+  ba5a5f65 2026-10-16 16:53 to 16:53      1 decisions  classifier 1 (0 allowed, 0 refused, 1 no verdict)  /home/me/shop
+  ef99b951 2026-10-16 16:53 to 16:53      1 decisions  classifier 1 (0 allowed, 0 refused, 1 no verdict)  /home/me/shop
+  78cecc8e 2026-10-16 16:53 to 16:53      2 decisions  classifier 2 (0 allowed, 2 refused, 0 no verdict)  /home/me/shop
+  100de338 2026-10-16 16:53 to 16:53      5 decisions  classifier 2 (1 allowed, 1 refused, 0 no verdict)  /home/me/shop
 
 Refused by the classifier: 2 commands, 3 times (it read them and judged them unsafe)
     2x  [Git Destructive]        Bash  git push --force origin main  last 2026-10-16
@@ -185,13 +185,13 @@ Read the "Who decided" table first. The classifier decided 6 of the 9 calls. It 
 `--session <id>` takes the start of a session id and reports on that one session:
 
 ```text
-claude-automode-doctor report --project /home/me/shop --session a868733d
+claude-automode-doctor report --project /home/me/shop --session ba5a5f65
 ```
 
 ```text
 claude-automode-doctor 1.0.0  what auto mode decided
 config    /home/me/.claude  (from CLAUDE_CONFIG_DIR)
-project   /home/me/shop  (session a868733d...)
+project   /home/me/shop  (session ba5a5f65...)
 window    the last 30 days (to 2026-10-16, days are UTC dates); 4 transcripts; 1 tool decision
 
 Who decided                   allowed  refused  no verdict   total
@@ -202,7 +202,7 @@ By day          decisions   classifier: allowed  refused  no verdict
   2026-10-16                 1                     0        0           1
 
 Sessions
-  a868733d 2026-10-16 16:14 to 16:14      1 decisions  classifier 1 (0 allowed, 0 refused, 1 no verdict)  /home/me/shop
+  ba5a5f65 2026-10-16 16:53 to 16:53      1 decisions  classifier 1 (0 allowed, 0 refused, 1 no verdict)  /home/me/shop
 
 No verdict: 1 time on 1 command. The check did not judge these, so they say nothing about the commands
     1x  the classifier model was unavailable (overloaded)         Bash  ./scripts/release.sh --publish  last 2026-10-16
@@ -247,7 +247,7 @@ By day          decisions   classifier: allowed  refused  no verdict
   2026-10-16                 4                     0        4           0
 
 Sessions
-  8b4c3204 2026-10-16 16:14 to 16:14      4 decisions  classifier 4 (0 allowed, 4 refused, 0 no verdict)  /home/me/shop
+  d3907fdc 2026-10-16 16:54 to 16:54      4 decisions  classifier 4 (0 allowed, 4 refused, 0 no verdict)  /home/me/shop
 
 Refused by the classifier: 4 commands, 4 times (it read them and judged them unsafe, except 2 that Claude Code asked about instead)
     1x  (asked instead)          Bash  git push --force origin hotfix  last 2026-10-16
@@ -264,7 +264,7 @@ Refused by the classifier: 4 commands, 4 times (it read them and judged them uns
 `why "<command>" [--project <dir>] [--tool Bash|PowerShell]` runs the command through the order Claude Code follows in auto mode, without running anything: deny and ask rules, the check for a critical path, allow rules (the broad ones are dropped, and `autoMode.classifyAllShell` suspends all shell ones), read-only commands and the file commands the mode approves inside the working folders, and then the classifier. It reads the settings of the project (the current folder, or `--project`). It exits 1 when the command would be refused or asked about.
 
 ```text
-claude-automode-doctor why ./scripts/release.sh --publish --project /home/me/shop
+claude-automode-doctor why "./scripts/release.sh --publish" --project /home/me/shop
 ```
 
 ```text
@@ -284,7 +284,7 @@ Goes to the classifier.
 The rule it proposes is a rule that auto mode keeps, and with it `why` says the command skips the classifier (the `suggest` example below writes it and asks again). A rule that auto mode drops is named when it matched:
 
 ```text
-claude-automode-doctor why python build.py --project /home/me/shop
+claude-automode-doctor why "python build.py" --project /home/me/shop
 ```
 
 ```text
@@ -304,7 +304,7 @@ Goes to the classifier.
 A compound command is read part by part:
 
 ```text
-claude-automode-doctor why git status && ls src --project /home/me/shop
+claude-automode-doctor why "git status && ls src" --project /home/me/shop
 ```
 
 ```text
@@ -326,7 +326,7 @@ Parts
 A removal of a critical path stops at a built-in check that asks you, whatever the allow rules say:
 
 ```text
-claude-automode-doctor why rm -rf ~ --project /home/me/shop
+claude-automode-doctor why "rm -rf ~" --project /home/me/shop
 ```
 
 ```text
@@ -425,9 +425,7 @@ config    /home/me/.claude
       Claude Code reads autoMode from the user's settings and from managed settings, not from a
       project's shared .claude/settings.json: this block does nothing (claude auto-mode config
       ignores it, 2.1.299).
-      fix: Move the block to ~/.claude/settings.json (or the settings.json in CLAUDE_CONFIG_DIR). A
-      repository's own file is not read for it so that a checked-in repository cannot widen what the
-      classifier allows.
+      fix: Move the block to ~/.claude/settings.json (or the settings.json in CLAUDE_CONFIG_DIR).
   note    read-deny-cd             line 9  permissions.deny  (issue #91650)
       1 Read deny rule (first: Read(./.env)). While a Read deny rule exists, a compound command with
       a cd followed by a read of a relative path is no longer approved by looking at it: on Claude
@@ -458,7 +456,9 @@ One classified command
   stage 2   claude-sonnet-5  max_tokens  8,192   system prompt 140,489 characters (about 35,122 tokens), whole request about 35,255 tokens
   One request when stage one is sure the command is routine (it allowed severities up to 25); two
   when it is not (it went on to stage two from 26). A classifier that answers something that is
-  not a verdict is asked up to 5 times at stage one and 5 at stage two.
+  not a verdict is asked up to 5 times at stage one and 5 at stage two. A classifier model that
+  answers with an error (overloaded) is asked 5 times, then your session's own model 5 times
+  (max_tokens 2,112); the refusal then names your model, not the classifier's.
   So a command costs 1 to 2 requests, about 35,197 to 70,452 input tokens by characters / 4 (an estimate, not the tokenizer's count). The large block of the system prompt carries cache_control "ephemeral", so prompt caching can apply; the fake API cannot show whether it did.
 
 Who pays  (the documentation; this tool cannot see an invoice)
@@ -493,7 +493,7 @@ claude-automode-doctor 1.0.0  suggest
 window    the last 30 days; commands the classifier turned back at least 2 times
 
 Bash(./scripts/release.sh *)   2x
-    2x the check gave no verdict (the classifier model was unavailable)
+    2x the check gave no verdict (the second stage of the classifier failed, the classifier model was unavailable)
     e.g. ./scripts/release.sh --publish
 Bash(git push *)   2x
     the classifier judged it unsafe 2x ([Git Destructive]): with this rule it runs unchecked
@@ -525,13 +525,13 @@ claude-automode-doctor suggest --project /home/me/shop --write --user
 ```text
 Added 1 allow rule to ~/.claude/settings.json:
   + Bash(./scripts/release.sh *)
-The old file is saved as ~/.claude/settings.json.bak-automode-doctor-20261016-214455. Undo with: claude-automode-doctor restore --user
+The old file is saved as ~/.claude/settings.json.bak-automode-doctor-20261016-222401. Undo with: claude-automode-doctor restore --user
 ```
 
 And with the rule in place, `why` says the command skips the classifier. The put-to-the-binary version of this step is in the tests: after the rule, the same command in a new `claude -p` session made no classifier request.
 
 ```text
-claude-automode-doctor why ./scripts/release.sh --publish --project /home/me/shop
+claude-automode-doctor why "./scripts/release.sh --publish" --project /home/me/shop
 ```
 
 ```text
@@ -555,7 +555,7 @@ claude-automode-doctor restore --user --dry-run
 ```
 
 ```text
-(dry run) Would restore ~/.claude/settings.json from ~/.claude/settings.json.bak-automode-doctor-20261016-214455.
+(dry run) Would restore ~/.claude/settings.json from ~/.claude/settings.json.bak-automode-doctor-20261016-222401.
 ```
 
 ```text
@@ -563,8 +563,8 @@ claude-automode-doctor restore --user
 ```
 
 ```text
-Restored ~/.claude/settings.json from ~/.claude/settings.json.bak-automode-doctor-20261016-214455.
-The file as it was is saved as ~/.claude/settings.json.bak-automode-doctor-20261016-214455-1; run restore again to switch back.
+Restored ~/.claude/settings.json from ~/.claude/settings.json.bak-automode-doctor-20261016-222401.
+The file as it was is saved as ~/.claude/settings.json.bak-automode-doctor-20261016-222402; run restore again to switch back.
 ```
 
 ### JSON
@@ -636,7 +636,7 @@ How `why` decides is the order in `src/why.mjs`: the engine of claude-permission
 It writes only with `suggest --write` and `restore`, and only the file you named with `--user`, `--project` or `--local`:
 
 - **A backup first**, next to the file: `settings.json.bak-automode-doctor-<timestamp>` (local time, `-1`, `-2` when the name is taken). `restore` puts the newest back and saves the file it replaces, so it can itself be undone. The backups are the file byte for byte.
-- **Only `permissions.allow` changes.** The rest of the file keeps its bytes, its indentation and its line endings. A file that is not valid JSON, or whose `permissions` is not an object, is left alone and the command says so.
+- **Only `permissions.allow` changes.** When the file has that list, it is edited in the file's text and the rest keeps its bytes. When it has none, the file is written again with the list added, in its own indentation and line endings. A file that is not valid JSON, or whose `permissions` is not an object, is left alone and the command says so.
 - **A temporary file and a rename**, so nobody sees half a file. The mode of the file is kept, and a symlink to the file stays a link.
 - **Nothing else**: never managed settings, never `~/.claude.json`, never a transcript.
 - **`--dry-run`** shows the change and writes nothing.
@@ -647,27 +647,27 @@ It reads transcripts and settings files on your machine and sends nothing anywhe
 
 ## What was verified, and how
 
-Checked on 2026-10-16 on Windows 11 with Node 24.19.0, git 2.55.0 and Claude Code 2.1.295 and 2.1.299 (every real-binary check passed on both). CI runs the unit tests on Linux, macOS and Windows with Node 20, 22 and 24 and on Linux with Node 18. It runs the real-binary checks on Linux and macOS against the npm release of Claude Code. The badges at the top show the latest runs.
+Checked on 2026-10-16 on Windows 11 with Node 24.19.0, git 2.55.0 and Claude Code 2.1.295 and 2.1.299 (every real-binary check passed on both). CI runs the unit tests on Linux, macOS and Windows with Node 20, 22 and 24 and on Linux with Node 18. It runs the real-binary checks on Linux and macOS against the npm release of Claude Code (2.1.301). All 12 jobs (10 of the unit tests, 2 of the real-binary checks) were green for the first time on commit 4e3512e, on 2026-10-16. The badges at the top show the latest runs.
 
-- **200 automated tests** (`npm test`, Node's own runner, no dependencies, about 7 seconds). `node --test` also reports each of the 7 helper files under `test/` as a passing test, on Node 20 and newer; those are not counted here. Without a Claude Code binary 146 pass on Windows and the 54 real-binary checks below are skipped. The tests cover:
+- **200 automated tests** (`npm test`, Node's own runner, no dependencies, about 7 seconds). `node --test` also reports each of the 7 helper files under `test/` as a passing test, on Node 20 and newer; those are not counted here. Without a Claude Code binary 146 pass on Windows and 145 on Linux and macOS, where one test of the PowerShell tool is skipped; the 54 real-binary checks below are skipped everywhere. The tests cover:
   - the transcript reader and the classification of every shape the binary wrote (the 24 fixtures in `test/fixtures/`, recorded from the binary), older transcripts, resumed sessions, lines that are not JSON, folders that only share a prefix;
   - the report: counts per source, per day and per session, the window, `--session`, the refused commands, the no-verdict causes, the asked-instead calls, the 17-line cap of the markdown form;
-  - the settings loader (precedence, managed drop-ins, a file that is not JSON, wrong types), `show` and the lint (every finding, with the numbers measured);
-  - `why` on the table of 612 commands (what the engine says for each, without a binary), the shell reader and the rule matching;
+  - the settings loader (precedence, managed drop-ins, a file that is not JSON, wrong types, paths with spaces), `show` and the lint (every finding, with the numbers measured);
+  - `why`: the order of the checks, deny and ask rules, allow rules and the ones auto mode drops (every rule shape that was put to the binary, kept or dropped as the binary did), `classifyAllShell`, critical and protected paths, additional directories, `cd` beside a Read deny rule, PowerShell on Windows, and the table of 612 commands: what `why` says for each row, without a binary;
   - `suggest` (the check that a proposed rule makes the command skip the classifier, `--write` with its backups, the held-back judged commands) and `restore`;
   - the command line (every usage error and exit code), the package files, the workflows and the README: its sections, commands, flags and usage block, and the numbers it quotes from the code.
-- **54 checks against the real binary** (`test/e2e-*.test.mjs` and `test/auto-oracle.test.mjs`, run when `E2E_CLAUDE` names a Claude Code binary). Each starts a fake Messages API on 127.0.0.1, so no model is reached and no token is spent. Each has its own throwaway `HOME`, `USERPROFILE` and `CLAUDE_CONFIG_DIR` and a project folder that Claude Code already trusts. All 54 passed on 2.1.299 on Windows. The findings below were the same on both versions unless a bullet says otherwise:
+- **54 checks against the real binary** (`test/e2e-*.test.mjs` and `test/auto-oracle.test.mjs`, run when `E2E_CLAUDE` names a Claude Code binary). Each starts a fake Messages API on 127.0.0.1, so no model is reached and no token is spent. Each has its own throwaway `HOME`, `USERPROFILE` and `CLAUDE_CONFIG_DIR` and a project folder that Claude Code already trusts. All 54 passed on 2.1.295 and on 2.1.299 on Windows. In CI on Linux and macOS with 2.1.301, 52 of them ran (two are for the Windows PowerShell tool) and passed. The findings below were the same on both versions unless a bullet says otherwise:
   - **The decisions** (`e2e-claude.test.mjs`, 24 scenarios, each one `claude -p` run). The fields the transcript carries for a read-only command, an exact allow rule from the user's file (`source` `user_permanent`), the same rule from the project's file (`config`), a prefix rule (still `subcommandResults`: it skips the classifier), a deny rule, an ask rule (`claude -p` refuses it as user-rejected), a file write and a `touch` approved by the mode, a hook that allows and one that denies, a removal of a critical path (`safetyCheck`), `dontAsk` mode, and the classifier: allowed after one request (stage one is sure) and after two, refused with a category and without one, a severity of 50 (refused: 50 is on the block side), the third refusal in a row, a classifier that answers text that is not a verdict (ten requests, then "could not evaluate"), a model that answers 529 (ten requests, then "temporarily unavailable"), a second stage that fails. The JSON result lists a refused call under `permission_denials` and an approved one does not. The server's review (not flagged, flagged, skipped) is played by the fake API; see "Not verified". `report` said the source and result of each line that the scenario says.
   - **The sizes and the thresholds.** The classifier's requests are ordinary Messages API requests to `ANTHROPIC_BASE_URL`, with no tools and no `stream` field. Stage one goes to `claude-sonnet-5` with `max_tokens` 64 and the stop sequence `</severity>`; stage two to `claude-sonnet-5` with `max_tokens` 8,192. Both carry the same system prompt, three blocks of 74, 140,173 and 242 characters on 2.1.299 (140,489 in all; 140,387 on 2.1.295), the big one marked for caching, and the transcript as the user message. Stage one answered severities of 5 and 25: one request, and the command ran. 26, 40 and 95: two requests, the second stage decided. A classifier that answers something that is not a verdict is asked five times at each stage. A classifier model that answers 529 is asked five times, and then the session's own model five times (`max_tokens` 2,112); the refusal names the session's model, not the classifier's. So a "temporarily unavailable" message can name your model while the model that failed first was the classifier's.
   - **The `autoMode` block.** `claude auto-mode defaults` prints 17 allow, 72 soft_deny, 1 hard_deny and 21 environment rules. A list without `"$defaults"` replaces the built-in rules of its section in the classifier's prompt: the prompt lost 8,019, 64,833, 5,284 and 3,566 characters (allow, soft_deny, hard_deny, environment) on 2.1.299 and 8,019, 64,731, 5,284 and 3,566 on 2.1.295, and with `"$defaults"` in the list they stayed (the prompt grew by 11 characters, the marker line). An empty list changes nothing, and a second `"$defaults"` adds nothing. The block is read from the user's `settings.json` and from the `--settings` flag, and not from the project's or the local file; two sources add their entries. `claude auto-mode config` agreed with `show --json` on the effective lists in 12 variants of the user file (`"$defaults"` first, in the middle, last, twice, in one list and not in another).
   - **Wrong types.** 47 values (33 for `autoMode`, 8 for `permissions.disableAutoMode`, 6 for `permissions.blockReadsOutsideWorkingDirectories`), each in the user, project and local file: 141 files, each with a `model` in it as the probe. Claude Code applied the `model` of 36 of them and ignored the other 105 whole. It ignored the whole file for a value of the wrong type anywhere in the block (a string, a number, `true`, `null` or a list where an object belongs; a string, a number, `null`, an object or a list where a list or a boolean belongs; an entry that is not a string), for any `disableAutoMode` but the string `"disable"` (`true`, `false`, `"enable"` and `"Disable"` included), and for a `blockReadsOutsideWorkingDirectories` that is not `true` or `false`. The loader of this tool said the same for all 141. A key the block does not have (`softDeny`, `deny`, `unknownKey`) does not cost the file: it is read and the entry reaches nothing. A comment or a trailing comma makes Claude Code ignore the file too, the `autoMode` block in it with it (`//`, `/* */` and a trailing comma were tried); strict JSON is read.
-  - **The traps.** `permissions.disableAutoMode` set to `"disable"` in the user, project or local file turned auto mode off: the classifier was not asked, and a command that needs approval was refused for want of someone to ask, as in the default mode. `classifyAllShell` and the broad allow rules, the Bash-first instruction and the cases of #95238 and #91650 are rows of the table below. For #88565 the `InstructionsLoaded` hook saw a path-scoped rule file load when Claude wrote a matching file with `Write` (`load_reason` `path_glob_match`), and not when a Bash redirection wrote it. The Bash-first instruction itself is in the request when auto mode is on, and the transcript records an `auto_mode` attachment with `bashFirst` true.
-  - **The table for `why`** (`auto-oracle.test.mjs`): 612 rows, each a command under one of four sets of settings, put to `claude -p --permission-mode auto` with a fake classifier that refuses whatever it is asked about, so that nothing that reaches it runs. A row is `static` (approved without the classifier), `classifier`, `prompt` (asked about; `claude -p` refuses) or `refused`. They fall in 36 groups: read-only commands, file commands, rule shapes, dropped rules, `classifyAllShell`, `blockReadsOutsideWorkingDirectories`, Read deny rules with `cd`, critical paths, and the PowerShell tool (82 rows, which run only on Windows). Every row gave the recorded answer on 2.1.299 and on 2.1.295. One row has a different answer on 2.1.295, recorded as `v295`: an `rm -rf` of the home folder in its Git Bash spelling went to the classifier there, where 2.1.299 stops it at the critical-path check. Before the table was fixed, a second set, the 755 Bash rows of claude-permission-doctor's own oracle table, was put to `why` and to the binary in auto mode: 21 differed at first, each one was fixed in the overlay, and then all 755 agreed on both versions. That second check is not in this repository. On a newer Claude Code the `core` rows (63 of them) must agree and 95% of all.
+  - **The traps.** `permissions.disableAutoMode` set to `"disable"` in the user, project or local file turned auto mode off: the classifier was not asked, and a command that needs approval was refused for want of someone to ask, as in the default mode. `classifyAllShell` and the broad allow rules, the Bash-first instruction and the cases of #95238 and #91650 are rows of the table below. For #88565, in one session with a Bash redirection into a text file and then a `Write` of another, the `InstructionsLoaded` hook saw the path-scoped rule file load once, triggered by the file `Write` made (`load_reason` `path_glob_match`) and not by the redirection; a `Read` of a text file loads it too. On 2.1.301 in CI the hook was seen on Linux and not on macOS in the same run, and in another run the other way round, so on a version that is not recorded the check only requires that the redirection did not load the rule. The Bash-first instruction itself is in the request when auto mode is on, and the transcript records an `auto_mode` attachment with `bashFirst` true.
+  - **The table for `why`** (`auto-oracle.test.mjs`): 612 rows, each a command under one of four sets of settings, put to `claude -p --permission-mode auto` with a fake classifier that refuses whatever it is asked about, so that nothing that reaches it runs. A row is `static` (approved without the classifier), `classifier`, `prompt` (asked about; `claude -p` refuses) or `refused`. They fall in 36 groups: read-only commands, file commands, rule shapes, dropped rules, `classifyAllShell`, `blockReadsOutsideWorkingDirectories`, Read deny rules with `cd`, critical paths, and the PowerShell tool (82 rows, which run only on Windows). Seven rows are not run by the oracle: their commands name something outside the throwaway folders (`rmdir` of `/`, `/usr`, `/etc` and `/tmp`, `Remove-Item` of `C:\Windows`) or install packages (an exact allow rule for `npm install`). They were put to both binaries once, while the table was made, and `why` is still held to them. Every row gave the recorded answer on 2.1.299 and on 2.1.295. One row has a different answer on 2.1.295, recorded as `v295`: an `rm -rf` of the home folder in its Git Bash spelling went to the classifier there, where 2.1.299 stops it at the critical-path check. Before the table was fixed, a second set, the 755 Bash rows of claude-permission-doctor's own oracle table, was put to `why` and to the binary in auto mode: 21 differed at first, each one was fixed in the overlay, and then all 755 agreed on both versions. That second check is not in this repository. On a newer Claude Code the `core` rows (63 of them) must agree and 95% of all. In CI with 2.1.301, on Linux and on macOS, every row that runs there gave the recorded answer but two: the two `xargs echo` rows. 2.1.301 approves `xargs echo` without the classifier, and 2.1.299 sent it there. Four rows that name an additional directory in the Git Bash spelling (`/c/Users/...`) have answers for Linux and macOS (`posix`), where that spelling is the directory itself; the first CI run showed them and the second confirmed them.
   - **The report on a real session** (`e2e-suggest.test.mjs`). A session of six calls (a read-only command, a `Write`, an allowed classifier call, two refused ones and an allow-rule one) was counted by source, the refused command was one entry with a count of two, and `why` agreed with what the binary did with each command.
   - **`suggest`.** Two sessions in which the second stage failed, so the check gave no verdict: `suggest` proposed `Bash(mytool *)`, `--dry-run` wrote nothing, `--write --user` added it after a backup, a third session ran the same command with no classifier request, and `restore` put the file back.
   - **A skill whose command fails.** The model never received a copy of the skill whose command is `report` without `--markdown`, on a project with a refused command (it exits 1): no request carried the skill's text. The same copy with `--markdown` reached the model.
-  - **The plugin** (`e2e-plugin.test.mjs`). `claude plugin validate` and `--strict` pass. With the plugin loaded, a plain prompt's request was the same size with and without it, and it had the same tool list. The word `automode-doctor` did not occur in it. The sizes were 69,122 characters on 2.1.295 and 69,652 on 2.1.299. `/automode-doctor:check` reached the model with the report for the project in it and the instruction after it, also when the classifier had refused something. The figures in "What it costs in tokens" are from that capture. The model could run the command from the skill's `allowed-tools` with no prompt in the default permission mode, with the Bash tool and, on Windows, the PowerShell tool. Claude Code runs the command line of a skill and pastes its output when the shell tool is allowed for it (what `allowed-tools` does here). Otherwise it hands the model `[run this first, exactly as written, ...]` with the command filled in. I saw both, and the skill's text reads right in both. `claude plugin details` for the installed plugin: `Always-on: ~12 tok`, `check < 20` always-on and about 90 when used.
-- **From GitHub.** Not run yet.
+  - **The plugin** (`e2e-plugin.test.mjs`). `claude plugin validate` and `--strict` pass. With the plugin loaded, a plain prompt's request was the same size with and without it, and it had the same tool list. The word `automode-doctor` did not occur in it. The sizes were 69,122 characters on 2.1.295 and 69,652 on 2.1.299, 64,688 on 2.1.301 on Linux and 65,667 on macOS. `/automode-doctor:check` reached the model with the report for the project in it and the instruction after it, also when the classifier had refused something. The figures in "What it costs in tokens" are from that capture. The model could run the command from the skill's `allowed-tools` with no prompt in the default permission mode, with the Bash tool and, on Windows, the PowerShell tool. Claude Code runs the command line of a skill and pastes its output when the shell tool is allowed for it (what `allowed-tools` does here). Otherwise it hands the model `[run this first, exactly as written, ...]` with the command filled in. I saw both, and the skill's text reads right in both. `claude plugin details` for the installed plugin: `Always-on: ~12 tok`, `check < 20` always-on and about 90 when used.
+- **From GitHub.** `npx -y github:nrzz/claude-automode-doctor report` ran from the published repository (commit 4e3512e) with a throwaway npm cache and home folder, against a copy of the config folder of the example above. It took 11 seconds, printed the same report and exited 1, because the classifier had refused commands.
 
 ## Not verified
 
@@ -676,8 +676,8 @@ Checked on 2026-10-16 on Windows 11 with Node 24.19.0, git 2.55.0 and Claude Cod
 - **Interactive sessions.** I did not drive the terminal interface or the desktop app, the VS Code extension or JetBrains. What a person is asked after three refusals in a row, what the transcript line says when they answer, the limit of 20 refusals in total that the documentation names, and the "Recently denied" list were not seen. The "asked instead" line is what a `claude -p` run wrote.
 - **Managed settings.** Their place and precedence come from the documentation. They are read, but the binary was not put to them: that needs a system folder these checks do not write to. How a managed `autoMode` list combines with the user's was not tried (two sources, the user file and `--settings`, were: the entries add). Server-managed settings, macOS profiles and the Windows registry are not read.
 - **Flags and hooks.** `show` and `why` do not read the `--settings` and `--setting-sources` flags, hooks or mods. A `PreToolUse` hook that allows a call decides before everything `why` looks at.
-- **Agent and MCP tools.** The report counts any tool whose result line carries a decision. Only Bash, PowerShell and Write calls were run against the binary; what the lines of an MCP tool or a subagent's call look like was not checked.
-- **Other versions.** The local runs are Claude Code 2.1.295 and 2.1.299. A transcript from a version before 2.1.295 has no `permissionDecision` on some lines: it is read by the sentences of the refusals, and that was tested with written transcripts, not recorded ones. The classifier's prompt, its built-in rules, the thresholds and the list of dropped allow rules change between releases; the figures are those of 2.1.299 and the lint quotes the version.
+- **Agent and MCP tools.** The report counts any tool whose result line carries a decision. Only Bash, PowerShell, Write and Read calls were run against the binary; what the lines of an MCP tool or a subagent's call look like was not checked.
+- **Other versions.** The local runs are Claude Code 2.1.295 and 2.1.299, the CI runs 2.1.301 on Linux and macOS. Transcripts of versions before 2.1.295 were not read. A line with no `permissionDecision` is read by the sentences of the refusals, or counted as "not recorded"; that was tested with written transcripts, not recorded ones. The classifier's prompt, its built-in rules, the thresholds and the list of dropped allow rules change between releases; the figures are those of 2.1.299 and the lint quotes the version.
 - **Linux and macOS** are covered by CI only; nothing was run on either by hand. Table rows that differ there are recorded in the table as `posix` rows.
 - **The PowerShell tool.** The 82 PowerShell rows ran on one Windows 11 machine with the tool switched on. The tool offers PowerShell rules and PowerShell commands the same way, but it is not as well covered as Bash.
 - **Providers.** Claude Code through Bedrock or Vertex, or behind a gateway, may route the classifier differently. Only `ANTHROPIC_BASE_URL` with an API key was tried.
