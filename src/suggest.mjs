@@ -106,7 +106,10 @@ export function suggestRules({ settings, report, min = 2, cwd, home, platform = 
         g.asked += e.asked || 0;
         if (e.category) g.categories.add(e.category);
         else if (e.reason && e.asked !== e.count) g.categories.add(e.reason);
-      } else { g.noVerdict += e.count; if (e.cause) g.causes.add(e.cause); }
+      } else {
+        g.noVerdict += e.count;
+        for (const c of Object.keys(e.causes || (e.cause ? { [e.cause]: 1 } : {}))) g.causes.add(c);
+      }
       if (g.examples.length < 3 && !g.examples.includes(e.subject)) g.examples.push(e.subject.length > 90 ? `${e.subject.slice(0, 87)}...` : e.subject);
       if (e.last > g.last) g.last = e.last;
     }

@@ -99,5 +99,6 @@ export function runRestore(o) {
   const b = base(o);
   const t = targetFile({ user: o.user, local: o.local, project: o.project, cwd: o.cwd, env: b.env, home: b.home, platform: b.platform });
   const r = restoreBackup(t.file, { now: o.now !== undefined ? new Date(o.now) : new Date(), dryRun: o.dryRun });
-  return { ok: r.restored || Boolean(r.dryRun), scope: t.target, display: t.file, ...r };
+  const short = (p) => (p ? shortPath(p, { home: b.home, project: o.cwd }) : p);
+  return { ok: r.restored || Boolean(r.dryRun), scope: t.target, ...r, display: short(t.file), fromDisplay: short(r.from), savedCurrentDisplay: short(r.savedCurrent) };
 }

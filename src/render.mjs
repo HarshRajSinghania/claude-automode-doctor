@@ -30,8 +30,8 @@ const clip = (s, n) => { const t = String(s).replace(/\s+/g, " "); return t.leng
 const SHORT_CAUSE = { unavailable: "unavailable", "server-no-verdict": "no server verdict", "stage-two-error": "stage two failed", "safety-check": "safety check", unparseable: "unreadable answer", "context-window": "too long" };
 /** Why the check gave no verdict: the one cause in words, or the causes with their counts when there were several. */
 const causeLabel = (r) => {
-  const kinds = Object.entries(r.causes || {});
-  if (kinds.length > 1) return kinds.map(([k, c]) => `${c}x ${SHORT_CAUSE[k] || k}`).join(", ");
+  const kinds = Object.entries(r.causes || {}).sort((a, b) => b[1] - a[1]);
+  if (kinds.length > 1) return kinds.map(([k, c]) => `${SHORT_CAUSE[k] || k}${c > 1 ? ` (${c})` : ""}`).join(", ");
   return `${NO_VERDICT_CAUSES[r.cause] || r.cause}${r.detail ? ` (${r.detail})` : ""}`;
 };
 /** The rule a refusal named, as the tables show it: [Category], or the reason, or that Claude Code asked instead. */
@@ -341,9 +341,9 @@ export function renderWrite(r, { color = false } = {}) {
   const tag = r.dryRun ? "(dry run) " : "";
   if (r.restored !== undefined) {
     if (r.restored) {
-      out.push(`Restored ${r.path} from ${r.from}.`);
-      if (r.savedCurrent) out.push(`The file as it was is saved as ${r.savedCurrent}; run restore again to switch back.`);
-    } else if (r.dryRun) out.push(`${tag}Would restore ${r.path} from ${r.from}.`);
+      out.push(`Restored ${r.display || r.path} from ${r.fromDisplay || r.from}.`);
+      if (r.savedCurrent) out.push(`The file as it was is saved as ${r.savedCurrentDisplay || r.savedCurrent}; run restore again to switch back.`);
+    } else if (r.dryRun) out.push(`${tag}Would restore ${r.display || r.path} from ${r.fromDisplay || r.from}.`);
     else out.push(p.red(`Nothing restored: ${r.reason}`));
     return `${out.join("\n")}\n`;
   }
@@ -352,7 +352,7 @@ export function renderWrite(r, { color = false } = {}) {
   else {
     out.push(`${tag}${r.dryRun ? "Would add" : "Added"} ${plural(r.added.length, "allow rule")} to ${r.display || r.path}:`);
     for (const a of r.added) out.push(`  + ${a}`);
-    if (r.backup) out.push(`The old file is saved as ${r.backup}. Undo with: claude-automode-doctor restore --${r.scope}`);
+    if (r.backup) out.push(`The old file is saved as ${r.backupDisplay || r.backup}. Undo with: claude-automode-doctor restore --${r.scope}`);
     if (r.dryRun) out.push("Nothing was written (--dry-run).");
   }
   return `${out.join("\n")}\n`;

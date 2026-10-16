@@ -127,10 +127,14 @@ test("the CLI: suggest lists, --write needs a file, --dry-run shows the change, 
   assert.equal(r.code, 0);
   assert.deepEqual(JSON.parse(fs.readFileSync(w.userFile, "utf8")).permissions.allow, ["Bash(mytool *)"], "the judged one is held back");
   r = await run(["suggest", "--write", "--user", "--include-judged"], w, at);
+  assert.match(r.out, /The old file is saved as ~\/\.claude\/settings\.json\.bak-automode-doctor-\d{8}-\d{6}\. Undo with: claude-automode-doctor restore --user/, "the paths are shortened like the rest");
   assert.deepEqual(JSON.parse(fs.readFileSync(w.userFile, "utf8")).permissions.allow, ["Bash(mytool *)", "Bash(curl *)"]);
   assert.equal(w.backups(w.userFile).length, 1);
+  r = await run(["restore", "--user", "--dry-run"], w, at);
+  assert.match(r.out, /^\(dry run\) Would restore ~\/\.claude\/settings\.json from ~\/\.claude\/settings\.json\.bak-automode-doctor-/);
   r = await run(["restore", "--user"], w, at);
   assert.equal(r.code, 0);
+  assert.match(r.out, /^Restored ~\/\.claude\/settings\.json from ~\/\.claude\/settings\.json\.bak-automode-doctor-\d{8}-\d{6}\.\nThe file as it was is saved as ~\/\.claude\/settings\.json\.bak-automode-doctor-/);
   assert.deepEqual(JSON.parse(fs.readFileSync(w.userFile, "utf8")).permissions.allow, ["Bash(mytool *)"]);
   r = await run(["restore", "--local"], w, at);
   assert.equal(r.code, 1);
@@ -138,4 +142,27 @@ test("the CLI: suggest lists, --write needs a file, --dry-run shows the change, 
   r = await run(["suggest", "--dry-run"], w, at);
   assert.equal(r.code, 2);
   assert.match(r.err, /--dry-run belongs to --write/);
+});
+
+test("a command with no verdict for different reasons lists every reason, and a command asked about instead is held back like a judged one", () => {
+  const w = world("sg-causes");
+  const UNPARSEABLE = { ...bash("mytool deploy"), decision: "reject", reasonType: "classifier", kind: "automode-parsing-error", classifierBoundary: true, text: "Auto mode could not evaluate this action and is blocking it for safety" };
+  const ASKED = (c) => ({ ...bash(c), decision: "reject", kind: "user-rejected", classifierBoundary: true, text: "This command requires approval" });
+  const r = suggestFor(w, [NOVERDICT("mytool deploy"), UNPARSEABLE, ASKED("othertool run"), ASKED("othertool run")]);
+  const mine = r.proposals.find((p) => p.rule === "Bash(mytool *)");
+  assert.deepEqual([mine.noVerdict, mine.judged, mine.asked, [...mine.causes].sort()], [2, 0, 0, ["unavailable", "unparseable"]]);
+  const other = r.proposals.find((p) => p.rule === "Bash(othertool *)");
+  assert.deepEqual([other.noVerdict, other.judged, other.asked], [0, 0, 2], "asked instead is neither judged nor no verdict");
+});
+
+test("--write leaves out a command that was asked about instead, unless --include-judged is given", async () => {
+  const w = world("sg-asked");
+  const ASKED = (c) => ({ ...bash(c), decision: "reject", kind: "user-rejected", classifierBoundary: true, text: "This command requires approval" });
+  writeTranscript(w, { calls: [ASKED("othertool run"), ASKED("othertool run"), NOVERDICT("mytool deploy"), NOVERDICT("mytool deploy")] });
+  const at = { now: NOW };
+  let r = await run(["suggest", "--since", "3650", "--write", "--user"], w, at);
+  assert.deepEqual(JSON.parse(fs.readFileSync(w.userFile, "utf8")).permissions.allow, ["Bash(mytool *)"]);
+  assert.match(r.out, /2x Claude Code asked instead, after three refusals in a row: with this rule it runs unchecked/);
+  r = await run(["suggest", "--since", "3650", "--write", "--user", "--include-judged"], w, at);
+  assert.deepEqual(JSON.parse(fs.readFileSync(w.userFile, "utf8")).permissions.allow, ["Bash(mytool *)", "Bash(othertool *)"]);
 });

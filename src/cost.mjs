@@ -20,7 +20,7 @@ export function buildCost({ report = null } = {}) {
   const perCommand = {
     requestsLow: 1, requestsHigh: 2,
     tokensLow: stageOne.requestTokens, tokensHigh: stageOne.requestTokens + stageTwo.requestTokens,
-    note: `One request when stage one is sure the command is routine (it allowed severities up to ${m.stageOneClears.upTo}); two when it is not (it went on to stage two from ${m.stageOneClears.goesOnFrom}). A classifier that answers something that is not a verdict is asked up to ${m.attempts.stageOne} times at stage one and ${m.attempts.stageTwo} at stage two.`,
+    note: `One request when stage one is sure the command is routine (it allowed severities up to ${m.stageOneClears.upTo}); two when it is not (it went on to stage two from ${m.stageOneClears.goesOnFrom}). A classifier that answers something that is not a verdict is asked up to ${m.attempts.stageOne} times at stage one and ${m.attempts.stageTwo} at stage two. A classifier model that answers with an error (overloaded) is asked ${m.attempts.stageOne} times, then your session's own model ${m.fallback.attempts} times (max_tokens ${m.fallback.maxTokens.toLocaleString("en-US")}); the refusal then names your model, not the classifier's.`,
   };
   const transcripts = report ? {
     window: report.window, classified: report.classifier.total, client: report.classifier.client, server: report.classifier.server,
@@ -33,7 +33,7 @@ export function buildCost({ report = null } = {}) {
     perCommand,
     prompt: { chars: m.prompt.chars, blocks: m.prompt.blocks, cached: "The large block of the system prompt carries cache_control \"ephemeral\", so prompt caching can apply; the fake API cannot show whether it did" },
     billing: {
-      notice: "We're changing auto mode to no longer charge for classifier requests in Claude Code. However, this session isn't eligible",
+      notice: "Claude Code prints a notice that classifier requests are no longer charged on a direct connection, and that a session whose requests go through another host is not eligible",
       url: BILLING_URL,
       says: [
         "where the server reviews the actions as part of the session's own model requests (a direct connection to the Anthropic API), there are no separate classifier requests and no charge for them",

@@ -62,7 +62,7 @@ export function lintSettings(settings) {
     if (!f.exists || !f.view || !f.view.autoMode) continue;
     const am = f.view.autoMode;
     if (!AUTOMODE_SCOPES.has(f.scope)) {
-      if (!f.ignored) add(f, { id: "automode-not-read", severity: "warning", effect: "key", line: am.line, keyPath: "autoMode", message: `Claude Code reads autoMode from the user's settings and from managed settings, not from ${f.scope === "project" ? "a project's shared .claude/settings.json" : "a project's .claude/settings.local.json"}: this block does nothing (claude auto-mode config ignores it, ${V}).`, fix: "Move the block to ~/.claude/settings.json (or the settings.json in CLAUDE_CONFIG_DIR). A repository's own file is not read for it so that a checked-in repository cannot widen what the classifier allows." });
+      if (!f.ignored) add(f, { id: "automode-not-read", severity: "warning", effect: "key", line: am.line, keyPath: "autoMode", message: `Claude Code reads autoMode from the user's settings and from managed settings, not from ${f.scope === "project" ? "a project's shared .claude/settings.json" : "a project's .claude/settings.local.json"}: this block does nothing (claude auto-mode config ignores it, ${V}).`, fix: "Move the block to ~/.claude/settings.json (or the settings.json in CLAUDE_CONFIG_DIR)." });
       continue;
     }
     if (f.ignored) continue;

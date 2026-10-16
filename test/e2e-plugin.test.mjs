@@ -106,7 +106,9 @@ test("the worst report the skill can hand over is capped at 17 lines (6 refused 
     assert.ok(skillText);
     if (/run this first/.test(skillText)) return;
     const report = skillText.slice(skillText.indexOf("## automode-doctor report"), skillText.indexOf("In at most 10 lines"));
-    t.diagnostic(`worst case built here: ${skillText.length} characters in the skill block, ${report.trim().split("\n").length} lines of report, about ${Math.round(skillText.length / 4)} tokens by characters / 4`);
+    const commandText = textBlocks(withSkill(api) || main(api)).find((b) => b.includes("<command-name>/automode-doctor:check</command-name>"));
+    const chars = skillText.length + (commandText ? commandText.length : 0);
+    t.diagnostic(`worst case built here: ${skillText.length} characters in the skill block${commandText ? ` and ${commandText.length} in the command block` : ""}, ${report.trim().split("\n").length} lines of report, about ${Math.round(chars / 4)} tokens by characters / 4`);
     assert.equal(report.trim().split("\n").length, 17);
     for (const l of report.trim().split("\n")) assert.ok(l.length <= 200, `${l.length} characters in a line`);
     assert.ok(skillText.length < 4500, `${skillText.length} characters`);

@@ -90,7 +90,7 @@ test("a command with no verdict for different reasons shows each reason with its
   const e = rep.noVerdict.find((x) => x.subject === "git push origin main");
   assert.deepEqual([e.count, e.serviceCount, e.causes], [3, 2, { unavailable: 1, unparseable: 1, "safety-check": 1 }]);
   const t = (await run(["report", "--since", "30"], w, { now: NOW })).out;
-  assert.match(t, /3x\s+1x unavailable, 1x unreadable answer, 1x safety check\s+Bash\s+git push origin main/);
+  assert.match(t, /3x\s+unavailable, unreadable answer, safety check\s+Bash\s+git push origin main/);
   assert.match(t, /3 of 4 trace to the service or the connection/);
   const md = (await run(["report", "--since", "30", "--markdown"], w, { now: NOW })).out;
   assert.match(md, /No verdict \(the check did not run; 3 of 4 the service or the connection\):/);

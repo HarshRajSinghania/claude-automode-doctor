@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { runCli } from "./helpers.mjs";
-import { callsOf, fakeApi, put, runClaude, sandbox, severity, skip, stage2 } from "./claude-sandbox.mjs";
+import { callsOf, fakeApi, put, runClaude, sandbox, severity, skip, stage2, userText } from "./claude-sandbox.mjs";
 
 const bash = (command) => ({ tool: "Bash", input: { command, description: "probe" } });
 // the tool's own process, in the sandbox's world
@@ -114,4 +114,25 @@ test("suggest: two sessions in which the check gave no verdict, the allow rule i
   const restored = cli(sb, ["restore", "--user"]);
   assert.equal(restored.code, 0, restored.err);
   assert.equal(fs.readFileSync(sb.user, "utf8"), original);
+});
+
+test("from the third refusal in a row the call is asked instead, and so is every one after it until the classifier allows something", { skip: skip(), timeout: 400000 }, async (t) => {
+  const lastAction = (req) => { const text = userText(req); return text.slice(text.lastIndexOf('{"Bash"')); };
+  const refuses = (req) => /blk-/.test(lastAction(req));
+  const kinds = async (commands) => {
+    const sb = sandbox("rows");
+    const api = await fakeApi({ calls: commands.map(bash), stage1: (req) => (refuses(req) ? severity(95) : severity(5)), stage2: (req) => (refuses(req) ? stage2(95, "Git Destructive") : stage2(5)) });
+    try {
+      const r = await runClaude(sb, api, [...ARGS, "--max-turns", "12"], { timeout: 300000 });
+      assert.equal(r.code, 0, r.err);
+      return { kinds: callsOf(sb).map((c) => c.kind), requests: api.classifier().length };
+    } finally { await api.close(); }
+  };
+  const five = await kinds(["blk-1", "blk-2", "blk-3", "blk-4", "blk-5"]);
+  t.diagnostic(`five refusals in a row: ${five.kinds.join(", ")}; ${five.requests} classifier requests`);
+  assert.deepEqual(five.kinds, ["automode-blocked", "automode-blocked", "user-rejected", "user-rejected", "user-rejected"]);
+  assert.equal(five.requests, 10, "the classifier was asked about all five, two requests each");
+  const mixed = await kinds(["blk-1", "blk-2", "ok-3", "blk-4", "blk-5", "ok-6"]);
+  t.diagnostic(`two refusals, an allowed call, two refusals, an allowed call: ${mixed.kinds.join(", ")}`);
+  assert.deepEqual(mixed.kinds, ["automode-blocked", "automode-blocked", null, "automode-blocked", "automode-blocked", null], "an allowed call starts the count again");
 });

@@ -79,6 +79,7 @@ export function addAllowRules(file, rules, { scope, dryRun = false, now = new Da
   try { JSON.parse(stripBom(next)); } catch { out.skipped = "the edit would not leave valid JSON, so nothing was written"; out.added = []; return out; }
   if (text !== null) {
     out.backup = backupPath(file, now);
+    out.backupDisplay = settings ? shortPath(out.backup, settings) : out.backup;
     fs.copyFileSync(file, out.backup);
   } else {
     fs.mkdirSync(path.dirname(file), { recursive: true });

@@ -274,3 +274,38 @@ test("a classifier that answers something that is not a verdict is asked again: 
   assert.ok(byStage[0] > 1 && byStage[1] > 1);
   if (claudeInfo().number === MEASURED.version) assert.deepEqual(byStage, [MEASURED.attempts.stageOne, MEASURED.attempts.stageTwo]);
 });
+
+test("when the classifier's model is overloaded, five requests to it are followed by five to the session's own model, and the refusal names that one", { skip: skip(), timeout: 600000 }, async (t) => {
+  const r = await classified("fallback", { args: ["--model", "m-probe"], stage1: { status: 529 }, stage2: { status: 529 } });
+  const models = r.cls.map((j) => j.model);
+  t.diagnostic(`models asked, in order: ${models.join(" ")}; max_tokens ${r.cls.map((j) => j.max_tokens).join(" ")}`);
+  assert.notEqual(models[0], "m-probe", "the classifier's own model is asked first");
+  assert.equal(models[models.length - 1], "m-probe", "and the session's model last");
+  const text = callsOf(r.sb)[0].text;
+  assert.match(text, /^m-probe is temporarily unavailable \(overloaded\), so auto mode cannot determine the safety of Bash/, "the refusal names the session's model, not the classifier's");
+  if (claudeInfo().number === MEASURED.version) {
+    assert.deepEqual([models.filter((m) => m !== "m-probe").length, models.filter((m) => m === "m-probe").length], [MEASURED.attempts.stageOne, MEASURED.fallback.attempts]);
+    assert.equal(r.cls[models.length - 1].max_tokens, MEASURED.fallback.maxTokens);
+  }
+});
+
+test("a comment or a trailing comma in the settings file makes Claude Code ignore the whole file, the autoMode block in it too; strict JSON is read", { skip: skip(), timeout: 300000 }, async (t) => {
+  const block = '"autoMode": { "environment": ["COMMENT-MARK-RULE"] }';
+  const kinds = {
+    "a // comment": `{\n  // my rules\n  ${block}\n}\n`,
+    "a /* */ comment": `{\n  /* my rules */\n  ${block}\n}\n`,
+    "a trailing comma": `{\n  "autoMode": { "environment": ["COMMENT-MARK-RULE"], }\n}\n`,
+    "strict JSON": `{\n  ${block}\n}\n`,
+  };
+  const seen = {};
+  for (const [kind, text] of Object.entries(kinds)) seen[kind] = (await classified("cmt", { user: text })).prompt.includes("COMMENT-MARK-RULE");
+  t.diagnostic(`the rule reached the classifier's prompt: ${JSON.stringify(seen)}`);
+  assert.deepEqual(seen, { "a // comment": false, "a /* */ comment": false, "a trailing comma": false, "strict JSON": true });
+});
+
+test("a key the block does not have (softDeny, deny) is ignored: its entries never reach the classifier, and the file is still read", { skip: skip(), timeout: 300000 }, async () => {
+  const typo = await classified("typo", { user: { autoMode: { softDeny: ["TYPO-MARK-RULE"], deny: ["TYPO-MARK-RULE-2"], environment: ["TYPO-KEPT-RULE"] } } });
+  assert.ok(!typo.prompt.includes("TYPO-MARK-RULE"), "softDeny");
+  assert.ok(!typo.prompt.includes("TYPO-MARK-RULE-2"), "deny");
+  assert.ok(typo.prompt.includes("TYPO-KEPT-RULE"), "the rest of the block is read");
+});

@@ -28,6 +28,9 @@ export const MEASURED = {
   stageOneClears: { upTo: 25, goesOnFrom: 26 },
   // A classifier that answers something that is not a verdict: attempts before Claude Code gives up
   attempts: { stageOne: 5, stageTwo: 5 },
+  // A classifier model that answers with an error (529): the five requests to it are followed by this many to the model of the
+  // session itself, with this max_tokens, and the refusal names that model
+  fallback: { attempts: 5, maxTokens: 2112 },
 };
 
 /** Characters divided by four, the estimate every figure in this tool's reports uses. */
