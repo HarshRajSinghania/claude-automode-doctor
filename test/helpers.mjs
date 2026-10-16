@@ -40,13 +40,13 @@ const configDirOf = (e) => e.CLAUDE_CONFIG_DIR || path.join((process.platform ==
 const asText = (v) => (typeof v === "string" ? v : `${JSON.stringify(v, null, 2)}\n`);
 const put = (file, v) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, asText(v)); return file; };
 
-// A throwaway world: base/home/.claude is the config folder, base/work/proj is the project folder, base/managed is the
+// A throwaway world: base/home/.claude is the config folder, base/work is the project folder, base/managed is the
 // managed-settings folder. Settings files are written from objects (as JSON) or from text.
 export function world(name = "w", { user, project, local, managed } = {}) {
   const base = tmpDir(`cad-${name}-`);
   const home = path.join(base, "home");
   const claude = path.join(home, ".claude");
-  const work = path.join(base, "work", "proj");
+  const work = path.join(base, "work");
   const managedDir = path.join(base, "managed");
   for (const d of [claude, work]) fs.mkdirSync(d, { recursive: true });
   const env = { ...process.env, HOME: home, USERPROFILE: home, CLAUDE_CONFIG_DIR: claude, CLAUDE_AUTOMODE_DOCTOR_MANAGED_DIR: managedDir, NO_COLOR: "1" };
