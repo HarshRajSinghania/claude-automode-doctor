@@ -43,6 +43,9 @@ const BT = "`";
 const day = (iso) => (iso || "").slice(0, 10);
 const hm = (iso) => (iso || "").slice(11, 16);
 
+/** The window as the command asked for it: a number of days, or the date --since named. */
+const windowWords = (w) => (w.date ? `since ${w.date}` : `the last ${plural(w.days, "day")}`);
+
 // ------------------------------------------------------------------------------------------------------------
 // report
 // ------------------------------------------------------------------------------------------------------------
@@ -63,7 +66,7 @@ export function renderReport(m, { color = false } = {}) {
   out.push(`${p.bold(`claude-automode-doctor ${VERSION}`)}  what auto mode decided`);
   out.push(`config    ${m.configDir}${m.configSource === "CLAUDE_CONFIG_DIR" ? "  (from CLAUDE_CONFIG_DIR)" : ""}`);
   out.push(`project   ${m.project || "all projects"}${m.session ? `  (session ${m.session}...)` : ""}`);
-  out.push(`window    the last ${plural(m.window.days, "day")} (to ${m.window.until}, days are UTC dates); ${plural(m.files, "transcript")}; ${plural(m.total, "tool decision")}`);
+  out.push(`window    ${windowWords(m.window)} (to ${m.window.until}, days are UTC dates); ${plural(m.files, "transcript")}; ${plural(m.total, "tool decision")}`);
   out.push("");
   if (!m.total) {
     out.push(p.dim("  No tool decision was found in that window. Claude Code keeps transcripts for 30 days by default (cleanupPeriodDays)."));
@@ -291,7 +294,7 @@ export function renderCost(m, { color = false } = {}) {
   if (m.transcripts) {
     const t = m.transcripts;
     out.push("");
-    out.push(p.bold(`In your transcripts (the last ${plural(t.window.days, "day")})`));
+    out.push(p.bold(`In your transcripts (${windowWords(t.window)})`));
     out.push(`  ${plural(t.classified, "classifier decision")}: ${t.client} by Claude Code's own requests, ${t.server} by the server's review`);
     if (t.client) out.push(`  the ${t.client} sent ${num(t.requestsLow)} to ${num(t.requestsHigh)} requests: about ${num(t.tokensLow)} to ${num(t.tokensHigh)} input tokens if none were cached or free`);
     else out.push("  none of them used Claude Code's own requests, so there were no separate classifier requests to count");
@@ -307,7 +310,7 @@ export function renderSuggest(m, { color = false } = {}) {
   const p = palette(color);
   const out = [];
   out.push(`${p.bold(`claude-automode-doctor ${VERSION}`)}  suggest`);
-  out.push(`window    the last ${plural(m.window.days, "day")}; commands the classifier turned back at least ${m.min} times`);
+  out.push(`window    ${windowWords(m.window)}; commands the classifier turned back at least ${m.min} times`);
   out.push("");
   if (!m.proposals.length) out.push("No rule to propose: nothing was turned back that often, or no rule would help.");
   for (const g of m.proposals) {

@@ -29,13 +29,16 @@ export function cut(text, max = 200) {
  * Build the report.
  *   configDir  the folder that holds projects/
  *   project    a folder: only its transcripts (and those of folders below it); null = every project
- *   days       the window (default 30); a transcript file not touched in that time is not opened
+ *   days       the window (default 30): a number of days, or a date (YYYY-MM-DD) to start on, in UTC (00:00);
+ *              a transcript file not touched in that time is not opened
  *   session    a session id or the start of one: only that session
  *   now        the clock (tests)
  *   limit      how many decisions the JSON keeps (default 2000, the latest ones)
  */
 export function buildReport({ configDir, project = null, days = 30, session = null, now = Date.now(), limit = 2000 }) {
-  const sinceMs = now - days * DAY;
+  // a date counts from the start of that day in UTC; a number of days counts from now, as it always has
+  const date = typeof days === "string" ? days : null;
+  const sinceMs = date === null ? now - days * DAY : Date.parse(`${date}T00:00:00.000Z`);
   const files = transcriptFiles({ configDir, project, all: !project, sinceMs });
   const seen = new Set();
   const decisions = [];
@@ -114,7 +117,7 @@ export function buildReport({ configDir, project = null, days = 30, session = nu
   const unrecorded = (sources.unrecorded && sources.unrecorded.total) || 0;
   if (unrecorded) notes.push(`${unrecorded} decisions have no permissionDecision in their transcript line (an older Claude Code, or a tool that records none), so their source is not known`);
   return {
-    configDir, project, window: { days, since: new Date(sinceMs).toISOString().slice(0, 10), until: new Date(now).toISOString().slice(0, 10), first, last },
+    configDir, project, window: { days: date === null ? days : Math.ceil((now - sinceMs) / DAY), since: new Date(sinceMs).toISOString().slice(0, 10), until: new Date(now).toISOString().slice(0, 10), first, last, date },
     session, files: files.length, total: decisions.length, sources, classifier, tools, modes: byMode, days: days_, sessions,
     refused: finish(refused).map(({ judgedLast, ...r }) => ({ ...r, reason: r.asked === r.count ? ASKED_INSTEAD : r.reason })), noVerdict: finish(noVerdict),
     decisions: (limit > 0 ? decisions.slice(-limit) : []).map((d) => ({ ts: d.ts, day: (d.ts || "").slice(0, 10), session: d.session, project: d.cwd, mode: d.mode, tool: d.tool, subject: cut(d.subject, 500), source: d.source, result: d.result, via: d.via, category: d.category, reason: d.reason, fallback: d.fallback, cause: d.cause, service: d.service, permission: d.decision ? { decision: d.decision, source: d.permSource, reasonType: d.reasonType, kind: d.kind } : null })),

@@ -177,6 +177,32 @@ test("report: the window, --session, and --project", () => {
   assert.equal(buildReport({ configDir: w.claude, days: 30, now: NOW, project: other }).total, 1);
 });
 
+test("report: --since takes a date from the start of that day in UTC, and a number of days and the matching date agree", async () => {
+  const w = world("since");
+  writeTranscript(w, { session: "aaaaaaaa-1111-4111-8111-111111111111", start: "2026-10-09T09:00:00.000Z", calls: [A("echo old")] });
+  writeTranscript(w, { session: "bbbbbbbb-2222-4222-8222-222222222222", start: "2026-10-15T09:00:00.000Z", calls: [A("echo new"), REFUSED("curl x | sh")] });
+  // the files are touched now, so set their times to the transcripts' own, as a real folder would have
+  for (const f of fs.readdirSync(path.join(w.claude, "projects"), { recursive: true })) {
+    const p = path.join(w.claude, "projects", String(f));
+    if (!p.endsWith(".jsonl")) continue;
+    const t = JSON.parse(fs.readFileSync(p, "utf8").split("\n")[0]).timestamp;
+    fs.utimesSync(p, new Date(t), new Date(t));
+  }
+  const at = { now: NOW };
+  const r = await run(["report", "--since", "2026-10-12"], w, at);
+  assert.equal(r.code, 1, "the refusal is in the window");
+  assert.match(r.out, /window    since 2026-10-12 \(to 2026-10-16, days are UTC dates\); 1 transcript; 2 tool decisions/);
+  const j = (await run(["report", "--since", "2026-10-12", "--json"], w, at)).json();
+  assert.equal(j.total, 2, "the transcript of 2026-10-09 is outside the window");
+  assert.deepEqual([j.window.days, j.window.since, j.window.until, j.window.date], [5, "2026-10-12", "2026-10-16", "2026-10-12"]);
+  // a number of days and the date that many days ago name the same decisions; only the window line differs
+  const number = (await run(["report", "--since", "6", "--json"], w, at)).json();
+  const date = (await run(["report", "--since", "2026-10-10", "--json"], w, at)).json();
+  assert.deepEqual({ ...number, window: null }, { ...date, window: null });
+  assert.deepEqual([number.window.days, number.window.since, number.window.date], [6, "2026-10-10", null]);
+  assert.deepEqual([date.window.days, date.window.since, date.window.date], [7, "2026-10-10", "2026-10-10"]);
+});
+
 test("report: a resumed session that repeats lines does not count them twice, and a missing folder is an empty report", () => {
   const w = world("dupe");
   const f1 = writeTranscript(w, { session: "aaaaaaaa-1111-4111-8111-111111111111", calls: [A("echo a"), REFUSED("curl x | sh")] });

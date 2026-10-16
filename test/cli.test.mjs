@@ -22,6 +22,8 @@ test("usage errors exit 2 with a message, and with --json a JSON error", async (
   const bad = [
     [[], /a command is needed/], [["nonsense"], /unknown command nonsense/], [["report", "--wat"], /unknown option --wat/],
     [["report", "--since"], /--since needs a value/], [["report", "--since", "0"], /--since needs a number of days/], [["report", "--since", "x"], /--since needs a number of days/],
+    [["report", "--since", "2026-13-40"], /--since needs a number of days, such as --since 7, or a date, such as --since 2026-10-01/],
+    [["report", "--since", "2026-10-17"], /--since needs a number of days, such as --since 7, or a date, such as --since 2026-10-01/],
     [["report", "--session", "zz"], /--session needs a session id/], [["report", "--project"], /--project needs a folder/], [["report", "--user"], /--user does not belong to report/],
     [["report", "extra"], /report takes no arguments/], [["report", "--json=1"], /does not take a value/],
     [["why"], /why needs the command in quotes/], [["why", "a", "b"], /why needs the command in quotes/], [["why", "ls", "--tool", "Zsh"], /--tool is Bash or PowerShell/], [["why", "ls", "--min", "2"], /--min does not belong to why/],
@@ -48,6 +50,8 @@ test("usage errors exit 2 with a message, and with --json a JSON error", async (
 test("parseArgs: values, inline values, the command anywhere before the arguments", () => {
   const o = parseArgs(["report", "--project=/x y", "--since", "7", "--session", "ABCD-12", "--json"]);
   assert.deepEqual([o.command, o.project, o.since, o.session, o.json], ["report", "/x y", 7, "abcd-12", true]);
+  const d = parseArgs(["report", "--since", "2026-10-01"]);
+  assert.equal(d.since, "2026-10-01", "a date stays a date until the window is built");
   const w = parseArgs(["why", "git push origin main", "--tool", "PowerShell"]);
   assert.deepEqual([w.command, w.positional, w.tool], ["why", ["git push origin main"], "PowerShell"]);
 });
@@ -95,6 +99,24 @@ test("cost: the measured sizes, who pays, and what the transcripts show", async 
   assert.equal(j.transcripts.client, 1);
   assert.equal(j.stages[0].maxTokens, 64);
   assert.ok(j.perCommand.tokensHigh > j.perCommand.tokensLow);
+});
+
+test("--since takes a date: report, cost and suggest say which window was asked for", async () => {
+  const w = world("since-date");
+  const file = writeTranscript(w, { start: "2020-06-01T09:00:00.000Z", calls: [{ tool: "Bash", input: { command: "mytool" }, decision: "accept", reasonType: "classifier", classifierBoundary: true }] });
+  // the file is touched now, so set its time to the transcript's own, as a real folder would have
+  fs.utimesSync(file, new Date("2020-06-01T09:00:00.000Z"), new Date("2020-06-01T09:00:00.000Z"));
+  const now = Date.parse("2026-10-16T12:00:00Z");
+  const days = Math.ceil((now - Date.parse("2020-06-01T00:00:00.000Z")) / 86400000);
+  const r = await run(["report", "--since", "2020-06-01"], w, { now });
+  assert.equal(r.code, 0);
+  assert.match(r.out, /window    since 2020-06-01 \(to 2026-10-16, days are UTC dates\); 1 transcript; 1 tool decision/);
+  const j = (await run(["report", "--json", "--since", "2020-06-01"], w, { now })).json();
+  assert.deepEqual([j.window.days, j.window.since, j.window.until, j.window.date], [days, "2020-06-01", "2026-10-16", "2020-06-01"]);
+  assert.match((await run(["cost", "--since", "2020-06-01"], w, { now })).out, /In your transcripts \(since 2020-06-01\)/);
+  assert.match((await run(["suggest", "--since", "2020-06-01"], w, { now })).out, /window    since 2020-06-01; commands the classifier turned back at least 2 times/);
+  // the number form says the number of days, as it always did
+  assert.match((await run(["report", "--since", "3650"], w, { now })).out, /window    the last 3650 days \(to 2026-10-16/);
 });
 
 test("the entry point runs in a child process, prints, and exits with the code", () => {

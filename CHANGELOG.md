@@ -2,6 +2,10 @@
 
 All notable changes to claude-automode-doctor are written here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+- `--since` takes a date as well as a number of days: `--since 2026-10-01` is from the start of that day in UTC, the way the report counts days, and `report`, `cost` and `suggest` take it the same way. The window line says what was asked for (`the last 7 days`, or `since 2026-10-01`), and the JSON `window` carries the date and the number of days it covers. The number form is unchanged. A date in the future, or one that is not a date (`--since 2026-13-40`), is a usage error (exit 2) that names both forms.
+
 ## [1.0.0] - 2026-10-16
 
 - First release. A CLI and a Claude Code plugin with one user-only skill, `/automode-doctor:check`.

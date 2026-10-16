@@ -13,14 +13,15 @@ What Claude Code's auto mode and its classifier decided, from your transcripts.
 Usage: claude-automode-doctor <command> [options]
 
 Read (they change nothing):
-  report   [--project <dir>] [--since <days>] [--session <id>] [--markdown]
+  report   [--project <dir>] [--since <days|YYYY-MM-DD>] [--session <id>] [--markdown]
            every tool decision in the transcripts, with who made it: static approval, the permission
            mode, a permission rule, the classifier (allowed, refused, or no verdict), a hook, you.
            Counts per day and per session, the commands the classifier refused, and the refusals
            that were no verdict (the check did not run: the service, not your settings). All
-           projects, or one with --project; the last 30 days, or --since. Exit 1 when the classifier
-           refused or gave no verdict in that window. --markdown is the short report the
-           /automode-doctor:check skill hands to Claude (at most 17 lines); it always exits 0
+           projects, or one with --project; the last 30 days, or --since: a number of days, or a
+           date, from the start of that day in UTC. Exit 1 when the classifier refused or gave no
+           verdict in that window. --markdown is the short report the /automode-doctor:check skill
+           hands to Claude (at most 17 lines); it always exits 0
   why      "<command>" [--project <dir>] [--tool Bash|PowerShell]
            whether the command goes to the classifier in auto mode, or is approved without it (read-only,
            an allow rule, a file command the mode approves), or is refused by a deny rule or asked about
@@ -35,19 +36,23 @@ Read (they change nothing):
            file (not read), classifyAllShell, permissions.disableAutoMode, and three known bad
            interactions (#95238, #91650, #88565). Exit 1 on an error or a warning. --markdown is the
            short form for the skill; it always exits 0
-  cost     [--project <dir>] [--since <days>]
+  cost     [--project <dir>] [--since <days|YYYY-MM-DD>]
            what a classified command costs by the request sizes measured on the binary, who is billed,
            and how many commands your transcripts show were classified
 
 Change settings (a settings file is saved next to itself first; --dry-run shows the change):
-  suggest  [--project <dir>] [--since <days>] [--min <n>] [--write (--user | --local | --project <dir>)]
-           [--include-judged] [--dry-run]
+  suggest  [--project <dir>] [--since <days|YYYY-MM-DD>] [--min <n>]
+           [--write (--user | --local | --project <dir>)] [--include-judged] [--dry-run]
            allow rules for commands the classifier turned back at least <n> times (default 2), each
            checked: it is not a broad rule auto mode drops, and with it the command skips the
            classifier. --write adds the ones the check never judged; --include-judged also adds those
            the classifier called unsafe, or Claude Code asked about instead (the third refusal in a row)
   restore  (--user | --local | --project <dir>) [--dry-run]
            put the newest backup back; the file as it was is saved first, so restore can be undone
+
+--since is a number of days (--since 7) or a date (--since 2026-10-01: from the start of that day, in
+UTC); report, cost and suggest take it the same way. A date in the future, or one that is not a date,
+is a usage error.
 
 Files: --user is <config folder>/settings.json (CLAUDE_CONFIG_DIR, else ~/.claude); --project <dir>
 is <dir>/.claude/settings.json; --local is <dir>/.claude/settings.local.json. <dir> is the folder
@@ -73,6 +78,17 @@ const COMMANDS = new Set(["report", "why", "show", "lint", "cost", "suggest", "r
 const FLAGS_WITH_VALUE = new Set(["--project", "--since", "--session", "--min", "--tool"]);
 const FLAGS = new Set([...FLAGS_WITH_VALUE, "--user", "--local", "--write", "--dry-run", "--include-judged", "--json", "--markdown", "--no-color", "-h", "--help", "-v", "--version"]);
 
+const SINCE_USAGE = "--since needs a number of days, such as --since 7, or a date, such as --since 2026-10-01";
+const SINCE_DAYS_USAGE = "--since needs a number of days, 1 or more, such as --since 7";
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** What --since names, if it is a day: the YYYY-MM-DD of a real day in UTC, else null (2026-13-40 is not one). */
+function asDay(value) {
+  if (!DAY_RE.test(value)) return null;
+  const t = Date.parse(`${value}T00:00:00.000Z`);
+  return Number.isNaN(t) || new Date(t).toISOString().slice(0, 10) !== value ? null : value;
+}
+
 /** Parse argv into { command, positional, project, since, session, min, tool, user, local, write, dryRun, ... }. */
 export function parseArgs(argv) {
   const o = { command: null, positional: [], project: null, since: null, session: null, min: null, tool: null, user: false, local: false, write: false, dryRun: false, includeJudged: false, json: false, markdown: false, help: false, version: false, noColor: false };
@@ -91,10 +107,15 @@ export function parseArgs(argv) {
       } else if (inline !== null) throw new UsageError(`${a} does not take a value`);
       switch (a) {
         case "--project": o.project = value; break;
-        case "--since":
-          if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 36500) throw new UsageError("--since needs a number of days, 1 or more, such as --since 7");
-          o.since = Number(value);
+        case "--since": {
+          // a date stays a date until the window is built; a number of days is a number, as it always was
+          const day = asDay(value);
+          if (day !== null) o.since = day;
+          else if (!/^\d+$/.test(value)) throw new UsageError(SINCE_USAGE);
+          else if (Number(value) < 1 || Number(value) > 36500) throw new UsageError(SINCE_DAYS_USAGE);
+          else o.since = Number(value);
           break;
+        }
         case "--session": if (!/^[0-9a-fA-F-]{4,}$/.test(value)) throw new UsageError("--session needs a session id, or the start of one (4 or more characters of 0-9 and a-f)"); o.session = value.toLowerCase(); break;
         case "--min":
           if (!/^\d+$/.test(value) || Number(value) < 1) throw new UsageError("--min needs a number, 1 or more, such as --min 3");
@@ -164,6 +185,8 @@ export async function main(argv, io = {}) {
     for (const [flag, on] of [["--since", o.since !== null], ["--session", o.session !== null], ["--min", o.min !== null], ["--tool", o.tool !== null], ["--user", o.user], ["--local", o.local], ["--write", o.write], ["--dry-run", o.dryRun], ["--include-judged", o.includeJudged], ["--markdown", o.markdown]]) {
       if (on && !allowed.includes(flag)) throw new UsageError(`${flag} does not belong to ${o.command}`);
     }
+    // a date only makes a window if it has already begun; the clock is io.now in tests
+    if (typeof o.since === "string" && o.since > new Date(io.now ?? Date.now()).toISOString().slice(0, 10)) throw new UsageError(SINCE_USAGE);
     const projectDir = o.project !== null ? path.resolve(cwd, o.project) : path.resolve(cwd);
 
     switch (o.command) {
@@ -210,7 +233,7 @@ export async function main(argv, io = {}) {
         if (o.write && !o.user && !o.local && o.project === null) throw new UsageError("suggest --write needs the settings file: --user, --local or --project <dir>");
         if (o.user && o.local) throw new UsageError("choose one settings file: --user or --local, not both");
         const m = buildSuggestModel({ ...common, project: projectDir, targetProject: o.project !== null ? o.project : null, days: o.since || 30, min: o.min || 2, write: o.write, user: o.user, local: o.local, dryRun: o.dryRun, includeJudged: o.includeJudged });
-        emit(m, renderSuggest({ ...m, window: { ...m.window, days: o.since || 30 } }, { color }));
+        emit(m, renderSuggest(m, { color }));
         return m.ok ? 0 : 1;
       }
       case "restore": {

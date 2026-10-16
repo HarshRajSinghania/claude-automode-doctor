@@ -86,14 +86,15 @@ The first is `~/.claude/settings.json`, the second `.claude/settings.json` in th
 Usage: claude-automode-doctor <command> [options]
 
 Read (they change nothing):
-  report   [--project <dir>] [--since <days>] [--session <id>] [--markdown]
+  report   [--project <dir>] [--since <days|YYYY-MM-DD>] [--session <id>] [--markdown]
            every tool decision in the transcripts, with who made it: static approval, the permission
            mode, a permission rule, the classifier (allowed, refused, or no verdict), a hook, you.
            Counts per day and per session, the commands the classifier refused, and the refusals
            that were no verdict (the check did not run: the service, not your settings). All
-           projects, or one with --project; the last 30 days, or --since. Exit 1 when the classifier
-           refused or gave no verdict in that window. --markdown is the short report the
-           /automode-doctor:check skill hands to Claude (at most 17 lines); it always exits 0
+           projects, or one with --project; the last 30 days, or --since: a number of days, or a
+           date, from the start of that day in UTC. Exit 1 when the classifier refused or gave no
+           verdict in that window. --markdown is the short report the /automode-doctor:check skill
+           hands to Claude (at most 17 lines); it always exits 0
   why      "<command>" [--project <dir>] [--tool Bash|PowerShell]
            whether the command goes to the classifier in auto mode, or is approved without it (read-only,
            an allow rule, a file command the mode approves), or is refused by a deny rule or asked about
@@ -108,19 +109,23 @@ Read (they change nothing):
            file (not read), classifyAllShell, permissions.disableAutoMode, and three known bad
            interactions (#95238, #91650, #88565). Exit 1 on an error or a warning. --markdown is the
            short form for the skill; it always exits 0
-  cost     [--project <dir>] [--since <days>]
+  cost     [--project <dir>] [--since <days|YYYY-MM-DD>]
            what a classified command costs by the request sizes measured on the binary, who is billed,
            and how many commands your transcripts show were classified
 
 Change settings (a settings file is saved next to itself first; --dry-run shows the change):
-  suggest  [--project <dir>] [--since <days>] [--min <n>] [--write (--user | --local | --project <dir>)]
-           [--include-judged] [--dry-run]
+  suggest  [--project <dir>] [--since <days|YYYY-MM-DD>] [--min <n>]
+           [--write (--user | --local | --project <dir>)] [--include-judged] [--dry-run]
            allow rules for commands the classifier turned back at least <n> times (default 2), each
            checked: it is not a broad rule auto mode drops, and with it the command skips the
            classifier. --write adds the ones the check never judged; --include-judged also adds those
            the classifier called unsafe, or Claude Code asked about instead (the third refusal in a row)
   restore  (--user | --local | --project <dir>) [--dry-run]
            put the newest backup back; the file as it was is saved first, so restore can be undone
+
+--since is a number of days (--since 7) or a date (--since 2026-10-01: from the start of that day, in
+UTC); report, cost and suggest take it the same way. A date in the future, or one that is not a date,
+is a usage error.
 
 Files: --user is <config folder>/settings.json (CLAUDE_CONFIG_DIR, else ~/.claude); --project <dir>
 is <dir>/.claude/settings.json; --local is <dir>/.claude/settings.local.json. <dir> is the folder
@@ -144,7 +149,9 @@ Every command takes `--json` (one JSON document on stdout, see the end of this s
 
 ### `report`
 
-`report [--project <dir>] [--since <days>] [--session <id>] [--markdown]` reads the transcripts under the config folder (`projects/<project>/<session>.jsonl` and the subagent transcripts below them): every project, or the one `--project` names, for the last 30 days or `--since`. For each tool call it reads who decided and what came out, and counts that per source, per day (UTC) and per session. It lists the commands the classifier refused with the rule it named, and the refusals that were no verdict with the cause. It exits 1 when the classifier refused something or gave no verdict in the window, so it can serve as a check.
+`report [--project <dir>] [--since <days|YYYY-MM-DD>] [--session <id>] [--markdown]` reads the transcripts under the config folder (`projects/<project>/<session>.jsonl` and the subagent transcripts below them): every project, or the one `--project` names, for the last 30 days or `--since`. For each tool call it reads who decided and what came out, and counts that per source, per day (UTC) and per session. It lists the commands the classifier refused with the rule it named, and the refusals that were no verdict with the cause. It exits 1 when the classifier refused something or gave no verdict in the window, so it can serve as a check.
+
+`--since` takes a number of days (`--since 7`) or a date (`--since 2026-10-01`, from the start of that day in UTC), so after an incident the window can be named by the day it happened instead of counted back from today, and the window line says what was asked for. `cost` and `suggest` take it the same way.
 
 ```text
 claude-automode-doctor report --project /home/me/shop
@@ -441,7 +448,7 @@ config    /home/me/.claude
 
 ### `cost`
 
-`cost [--project <dir>] [--since <days>]` says what one classified command costs, from the sizes of the requests the binary sent in the capture behind this version of the tool (the version and the date are in its first line), then what the documentation says about who is billed, and how many commands in your transcripts were classified in the window.
+`cost [--project <dir>] [--since <days|YYYY-MM-DD>]` says what one classified command costs, from the sizes of the requests the binary sent in the capture behind this version of the tool (the version and the date are in its first line), then what the documentation says about who is billed, and how many commands in your transcripts were classified in the window.
 
 ```text
 claude-automode-doctor cost --project /home/me/shop
@@ -479,7 +486,7 @@ These are characters divided by 4, an estimate and not a count by the tokenizer.
 
 ### `suggest`
 
-`suggest [--project <dir>] [--since <days>] [--min <n>] [--write (--user | --local | --project <dir>)] [--include-judged] [--dry-run]` proposes allow rules for the commands the classifier turned back at least `<n>` times (default 2). It exists because the binary shows that a narrow allow rule makes a command skip the classifier in auto mode. Each proposal is checked: the rule is not one of the broad rules auto mode drops, and with it `why` says the whole command line no longer goes to the classifier. A command line that no rule can fix (inline code, a pipe into a shell, a variable in front of the command) is listed as one no rule helps. Two kinds of turned-back command are told apart:
+`suggest [--project <dir>] [--since <days|YYYY-MM-DD>] [--min <n>] [--write (--user | --local | --project <dir>)] [--include-judged] [--dry-run]` proposes allow rules for the commands the classifier turned back at least `<n>` times (default 2). It exists because the binary shows that a narrow allow rule makes a command skip the classifier in auto mode. Each proposal is checked: the rule is not one of the broad rules auto mode drops, and with it `why` says the whole command line no longer goes to the classifier. A command line that no rule can fix (inline code, a pipe into a shell, a variable in front of the command) is listed as one no rule helps. Two kinds of turned-back command are told apart:
 
 - no verdict: the check did not run. Nothing was judged, and `--write` adds the rule;
 - judged unsafe (or asked instead, after three refusals in a row): the rule would make a command run unchecked that the classifier called dangerous. These are listed with the category and the risk of the rule, and `--write` leaves them out unless you add `--include-judged`.
@@ -572,7 +579,7 @@ The file as it was is saved as ~/.claude/settings.json.bak-automode-doctor-20261
 `--json` prints one document. The top-level shapes (a field name is listed where the value is a list or an object):
 
 ```text
-report   { ok, configSource, configDir, project, window: { days, since, until, first, last }, session, files, total,
+report   { ok, configSource, configDir, project, window: { days, since, until, first, last, date }, session, files, total,
            sources: { <source>: { total, allowed, refused, noVerdict, unknown } },
            classifier: { total, allowed, refused, noVerdict, client, server },
            tools, modes, days: [ { day, total, ..., classifier } ], sessions: [ { id, project, first, last, version, total, ..., classifier } ],
@@ -600,6 +607,7 @@ restore  { ok, scope, display, restored, from, savedCurrent, ... }
 ```
 
 - `why.outcome` is `static` (approved without the classifier), `classifier`, `refused` (a rule or a built-in check refuses it) or `prompt` (it asks you; `claude -p` refuses it). `basis` says why: `read-only`, `allow-rule`, `mode`, `no-rule`, and so on.
+- `report.window` is the window that was asked for: `days` is the days it covers (`--since 7` is 7; `--since 2026-10-01` is the days from that date to now, rounded up), `since` is its first UTC day, `until` its last, and `date` is the day `--since` named, `null` when a number of days was asked.
 - `lint.findings[].evidence` says what a finding rests on: `binary` (put to the real Claude Code binary), `docs` (the documentation, not asked of the binary) or `issue` (an issue thread, with the premise put to the binary). `effect` says what Claude Code does about it: `file` (the whole file is ignored), `list`, `key`, or `none`.
 - `report.decisions[].source` is one of `static`, `mode`, `rule`, `classifier`, `hook`, `safety`, `user`, `unrecorded`; `result` is `allowed`, `refused`, `no-verdict` or `unknown`. `via` is `client` (Claude Code's own classifier requests) or `server` (the review done with the model request). `fallback` is `repeated-blocks` for an asked-instead call.
 
