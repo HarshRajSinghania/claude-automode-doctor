@@ -4,7 +4,10 @@ All notable changes to claude-automode-doctor are written here. The format follo
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-16
+
 - `--since` takes a date as well as a number of days: `--since 2026-10-01` is from the start of that day in UTC, the way the report counts days, and `report`, `cost` and `suggest` take it the same way. The window line says what was asked for (`the last 7 days`, or `since 2026-10-01`), and the JSON `window` carries the date and the number of days it covers. The number form is unchanged. A date in the future, or one that is not a date (`--since 2026-13-40`), is a usage error (exit 2) that names both forms.
+- Contributed by [@ElectLive](https://github.com/ElectLive) in [#2](https://github.com/nrzz/claude-automode-doctor/pull/2), the first outside pull request, for the good first issue [#1](https://github.com/nrzz/claude-automode-doctor/issues/1).
 
 ## [1.0.0] - 2026-10-16
 
@@ -18,4 +21,5 @@ All notable changes to claude-automode-doctor are written here. The format follo
 - When the classifier's model answers "overloaded", Claude Code asks it five times and then your session's own model five times, and the refusal names the session's model. `cost` says so.
 - Zero tokens for the tool. The skill is user-only, adds nothing to a request that does not use it, and hands the model a report of at most 17 lines.
 
+[1.1.0]: https://github.com/nrzz/claude-automode-doctor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nrzz/claude-automode-doctor/releases/tag/v1.0.0

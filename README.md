@@ -158,7 +158,7 @@ claude-automode-doctor report --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.0.0  what auto mode decided
+claude-automode-doctor 1.1.0  what auto mode decided
 config    /home/me/.claude  (from CLAUDE_CONFIG_DIR)
 project   /home/me/shop
 window    the last 30 days (to 2026-10-16, days are UTC dates); 4 transcripts; 9 tool decisions
@@ -196,7 +196,7 @@ claude-automode-doctor report --project /home/me/shop --session ba5a5f65
 ```
 
 ```text
-claude-automode-doctor 1.0.0  what auto mode decided
+claude-automode-doctor 1.1.0  what auto mode decided
 config    /home/me/.claude  (from CLAUDE_CONFIG_DIR)
 project   /home/me/shop  (session ba5a5f65...)
 window    the last 30 days (to 2026-10-16, days are UTC dates); 4 transcripts; 1 tool decision
@@ -241,7 +241,7 @@ claude-automode-doctor report --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.0.0  what auto mode decided
+claude-automode-doctor 1.1.0  what auto mode decided
 config    /home/me/.claude  (from CLAUDE_CONFIG_DIR)
 project   /home/me/shop
 window    the last 30 days (to 2026-10-16, days are UTC dates); 1 transcript; 4 tool decisions
@@ -275,7 +275,7 @@ claude-automode-doctor why "./scripts/release.sh --publish" --project /home/me/s
 ```
 
 ```text
-claude-automode-doctor 1.0.0  why
+claude-automode-doctor 1.1.0  why
 command   ./scripts/release.sh --publish
 tool      Bash   in /home/me/shop
 
@@ -295,7 +295,7 @@ claude-automode-doctor why "python build.py" --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.0.0  why
+claude-automode-doctor 1.1.0  why
 command   python build.py
 tool      Bash   in /home/me/shop
 
@@ -315,7 +315,7 @@ claude-automode-doctor why "git status && ls src" --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.0.0  why
+claude-automode-doctor 1.1.0  why
 command   git status && ls src
 tool      Bash   in /home/me/shop
 
@@ -337,7 +337,7 @@ claude-automode-doctor why "rm -rf ~" --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.0.0  why
+claude-automode-doctor 1.1.0  why
 command   rm -rf ~
 tool      Bash   in /home/me/shop
 
@@ -359,7 +359,7 @@ claude-automode-doctor show --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.0.0  the autoMode and permissions settings, merged
+claude-automode-doctor 1.1.0  the autoMode and permissions settings, merged
 project   /home/me/shop
 config    /home/me/.claude
 
@@ -409,7 +409,7 @@ claude-automode-doctor lint --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.0.0  lint
+claude-automode-doctor 1.1.0  lint
 project   /home/me/shop
 config    /home/me/.claude
 
@@ -455,7 +455,7 @@ claude-automode-doctor cost --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.0.0  what classification costs
+claude-automode-doctor 1.1.0  what classification costs
 measured  on Claude Code 2.1.299, Windows 11, 2026-10-16, against a fake API (zero tokens)
 
 One classified command
@@ -496,7 +496,7 @@ claude-automode-doctor suggest --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.0.0  suggest
+claude-automode-doctor 1.1.0  suggest
 window    the last 30 days; commands the classifier turned back at least 2 times
 
 Bash(./scripts/release.sh *)   2x
@@ -542,7 +542,7 @@ claude-automode-doctor why "./scripts/release.sh --publish" --project /home/me/s
 ```
 
 ```text
-claude-automode-doctor 1.0.0  why
+claude-automode-doctor 1.1.0  why
 command   ./scripts/release.sh --publish
 tool      Bash   in /home/me/shop
 
@@ -657,7 +657,7 @@ It reads transcripts and settings files on your machine and sends nothing anywhe
 
 Checked on 2026-10-16 on Windows 11 with Node 24.19.0, git 2.55.0 and Claude Code 2.1.295 and 2.1.299 (every real-binary check passed on both). CI runs the unit tests on Linux, macOS and Windows with Node 20, 22 and 24 and on Linux with Node 18. It runs the real-binary checks on Linux and macOS against the npm release of Claude Code (2.1.301). All 12 jobs (10 of the unit tests, 2 of the real-binary checks) were green for the first time on commit 4e3512e, on 2026-10-16. The badges at the top show the latest runs.
 
-- **200 automated tests** (`npm test`, Node's own runner, no dependencies, about 7 seconds). `node --test` also reports each of the 7 helper files under `test/` as a passing test, on Node 20 and newer; those are not counted here. Without a Claude Code binary 146 pass on Windows and 145 on Linux and macOS, where one test of the PowerShell tool is skipped; the 54 real-binary checks below are skipped everywhere. The tests cover:
+- **202 automated tests** (`npm test`, Node's own runner, no dependencies, about 7 seconds). `node --test` also reports each of the 7 helper files under `test/` as a passing test, on Node 20 and newer; those are not counted here. Without a Claude Code binary 148 pass on Windows and 147 on Linux and macOS, where one test of the PowerShell tool is skipped; the 54 real-binary checks below are skipped everywhere. The tests cover:
   - the transcript reader and the classification of every shape the binary wrote (the 24 fixtures in `test/fixtures/`, recorded from the binary), older transcripts, resumed sessions, lines that are not JSON, folders that only share a prefix;
   - the report: counts per source, per day and per session, the window, `--session`, the refused commands, the no-verdict causes, the asked-instead calls, the 17-line cap of the markdown form;
   - the settings loader (precedence, managed drop-ins, a file that is not JSON, wrong types, paths with spaces), `show` and the lint (every finding, with the numbers measured);
