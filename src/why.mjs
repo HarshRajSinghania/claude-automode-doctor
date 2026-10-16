@@ -63,6 +63,14 @@ function criticalTarget(arg, ctx, assigned) {
   if (/^\$\(.*\)$/.test(bare) || /^`.*`$/.test(bare)) return true; // only the output of a command substitution
   const v = /^\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?\/(\*|\*\/)?$/.exec(bare);
   if (v && !assigned.has(v[1]) && v[1] !== "HOME") return true; // a glob or trailing slash straight under a variable that nothing assigns
+  // a glob straight in a working folder (the current one, or an additional directory) or in the home folder, written with the
+  // folder's path
+  const glob = /^(.+?)\/(\*|\*\/)$/.exec(bare);
+  if (glob) {
+    const parent = resolveArg(glob[1], ctx.cwd, ctx.home);
+    const same = (a, b) => (process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b);
+    if (parent && [...ctx.dirs, ctx.home].filter(Boolean).some((d) => same(path.resolve(d), parent))) return true;
+  }
   const abs = resolveArg(bare, ctx.cwd, ctx.home);
   if (!abs) return false;
   const root = path.parse(abs).root;

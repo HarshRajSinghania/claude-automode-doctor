@@ -37,6 +37,7 @@ jobs:
         env:
           E2E_CLAUDE: claude
       - name: The table of commands against the real binary
+        if: ${{ !cancelled() }}
         run: node --test test/auto-oracle.test.mjs
         env:
           E2E_CLAUDE: claude

@@ -16,6 +16,8 @@ import { loadSettings } from "../src/settings.mjs";
 
 const bash = (command) => ({ tool: "Bash", input: { command, description: "check" } });
 const ROUTINE = bash("mytool deploy --prod");
+// the Claude Code versions this file's findings were recorded on; a newer one has to agree where it says so, and the CI log shows where it does not
+const RECORDED = ["2.1.299", "2.1.295"];
 
 /** Run one classified command with these settings and say what the classifier was sent. */
 async function classified(label, { user, project, local, args = [], calls = [ROUTINE], stage1 = severity(5), stage2: s2 } = {}) {
@@ -200,11 +202,12 @@ test("auto mode tells Claude it can do much of its work through Bash (the Bash-f
   } finally { await api.close(); }
 });
 
-test("a path-scoped rule file (.claude/rules/*.md with paths:) is loaded when Claude writes a matching file with Write, and not when a Bash redirection does (issue 88565, put to the binary)", { skip: skip(), timeout: 300000 }, async () => {
+test("a path-scoped rule file (.claude/rules/*.md with paths:) is loaded when Claude writes a matching file with Write, and not when a Bash redirection does (issue 88565, put to the binary)", { skip: skip(), timeout: 300000 }, async (t) => {
   const rule = '---\npaths:\n  - "**/*.txt"\n---\nCAD-RULE: be careful with text files.\n';
-  const loaded = async (call) => {
+  const loaded = async (call, files = {}) => {
     const sb = sandbox("rules");
     put(path.join(sb.work, ".claude", "rules", "text.md"), rule);
+    for (const [name, text] of Object.entries(files)) put(path.join(sb.work, name), text);
     put(sb.user, { hooks: { InstructionsLoaded: [{ hooks: [recorder("loaded")] }] } });
     const api = await fakeApi({ calls: [call] });
     try {
@@ -214,10 +217,15 @@ test("a path-scoped rule file (.claude/rules/*.md with paths:) is loaded when Cl
   };
   const viaWrite = await loaded({ tool: "Write", input: { file_path: "z1.txt", content: "x" } });
   const viaBash = await loaded(bash("echo viabash > y1.txt"));
-  assert.equal(viaWrite.length, 1, "Write loads the rule");
-  assert.equal(viaWrite[0].input.load_reason, "path_glob_match");
-  assert.match(viaWrite[0].input.trigger_file_path, /z1\.txt$/);
+  const viaRead = await loaded({ tool: "Read", input: { file_path: "r1.txt" } }, { "r1.txt": "x\n" });
+  t.diagnostic(`Claude Code ${claudeInfo().number}: the rule was loaded ${viaWrite.length}x by Write of a new file, ${viaRead.length}x by Read of an existing one, ${viaBash.length}x by a Bash redirection`);
   assert.equal(viaBash.length, 0, "a redirection into a matching file does not");
+  // what Write does is what 2.1.295 and 2.1.299 did; a newer version may load the rule on other occasions, and the diagnostic says
+  if (RECORDED.includes(claudeInfo().number)) {
+    assert.equal(viaWrite.length, 1, "Write loads the rule");
+    assert.equal(viaWrite[0].input.load_reason, "path_glob_match");
+    assert.match(viaWrite[0].input.trigger_file_path, /z1\.txt$/);
+  }
 });
 
 // ---- (d) what classification costs: the request sizes ---------------------------------------------------------------------------

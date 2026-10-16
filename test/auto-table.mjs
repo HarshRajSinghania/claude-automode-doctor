@@ -12,7 +12,9 @@
 //   "refused"     a rule, or a built-in check that asks nothing, refuses it
 // Every row was run against Claude Code 2.1.299 on Windows 11 and, with the one exception named in `v295`, gave the same
 // answer on 2.1.295. A row with `v295` says what 2.1.295 did instead. A row with `platform: "win32"` is for the PowerShell
-// tool, which Claude Code offers on Windows; the oracle and the table test skip it elsewhere.
+// tool, which Claude Code offers on Windows; the oracle and the table test skip it elsewhere. A row with `posix` says what
+// Linux and macOS are expected to do where that differs from Windows (the other rows were recorded on Windows only; the
+// real-binary job in CI runs the table on Linux and macOS and shows where a row differs).
 //
 // Placeholders in strings: {WORK} the folder Claude starts in, {HOME} the home folder, {ROOT} the folder that holds both,
 // {CFG} Claude's config folder; add _POSIX for the form a Git Bash command uses (/c/Users/... on Windows).
@@ -35,8 +37,8 @@ function add(group, settings, command, expect, extra = {}) {
   const { files, ...rest } = extra;
   rows.push({ id: `${group}-${String(++count).padStart(3, "0")}`, group, settings, command, expect, files: { ...DEFAULT_FILES, ...(files || {}) }, ...rest });
 }
-// list: [command, expect, reasonType?, v295?, "core"?]
-const each = (group, settings, list, extra) => { for (const [command, expect, reasonType, v295, core] of list) add(group, settings, command, expect, { ...(reasonType ? { reasonType } : {}), ...(v295 ? { v295 } : {}), ...(core ? { core: true } : {}), ...extra }); };
+// list: [command, expect, reasonType?, v295?, "core"?, posix?]  (posix: what Linux and macOS are expected to do where it differs from Windows)
+const each = (group, settings, list, extra) => { for (const [command, expect, reasonType, v295, core, posix] of list) add(group, settings, command, expect, { ...(reasonType ? { reasonType } : {}), ...(v295 ? { v295 } : {}), ...(core ? { core: true } : {}), ...(posix ? { posix } : {}), ...extra }); };
 const NONE = {};
 
 
@@ -246,6 +248,13 @@ each("critical", NONE, [
   ["rmdir /tmp", "prompt"],
   ["DIR=sub; rm -rf \"$DIR\"/*", "classifier"],
   ["rm -rf sub/deeper", "static", "mode", null, "core"],
+  // a glob straight in a working folder or in the home folder, with the folder's path written out
+  ["rm -rf {WORK_POSIX}/*", "prompt"],
+  ["rm -rf {WORK_POSIX}/*/", "prompt"],
+  ["rm -rf {WORK_POSIX}/sub/*", "classifier"],
+  ["rm -rf {HOME_POSIX}/*", "prompt", null, "classifier"],
+  ["rm -rf {WORK_POSIX}/b.txt", "static", "mode"],
+  ["rmdir {WORK_POSIX}/sub", "static", "mode"],
 ]);
 
 // ---- an allow rule with a wildcard: every part of the line needs a rule or must be read-only -----------------------
@@ -702,11 +711,13 @@ each("readdeny-cd", {"user":{"permissions":{"deny":["Read(**/*.pem)"]}}}, [
 
 // ---- permissions.additionalDirectories are working folders too -----------------------------------------------------
 each("dirs", {"user":{"permissions":{"additionalDirectories":["{ROOT_POSIX}/other"]}}}, [
-  ["touch {ROOT_POSIX}/other/t.txt", "classifier"],
+  // On Windows the Git Bash spelling (/c/Users/...) of an additional directory is not the folder the setting names, so the
+  // commands are outside every working folder; on Linux and macOS the two spellings are one, so they are inside.
+  ["touch {ROOT_POSIX}/other/t.txt", "classifier", null, null, null, "static"],
   ["touch {ROOT_POSIX}/elsewhere/t.txt", "classifier"],
-  ["cat {ROOT_POSIX}/other/x.txt", "classifier"],
-  ["rm -rf {ROOT_POSIX}/other/*", "classifier"],
-  ["rm -rf {ROOT_POSIX}/other", "classifier"],
+  ["cat {ROOT_POSIX}/other/x.txt", "classifier", null, null, null, "static"],
+  ["rm -rf {ROOT_POSIX}/other/*", "classifier", null, null, null, "prompt"],
+  ["rm -rf {ROOT_POSIX}/other", "classifier", null, null, null, "static"],
 ], {"files":{"{ROOT_POSIX}/other/x.txt":"x\n"}});
 
 // ---- flags of the file commands the mode approves: any option on cp or mv, and most forms of sed, send the command to the classifier ---
