@@ -7,11 +7,12 @@
 //            rule        a permission rule matched (allow, ask or deny)
 //            classifier  auto mode's classifier decided
 //            hook        a PreToolUse hook decided
+//            safety      a built-in safety check stopped it (an rm of a critical path): reasonType safetyCheck
 //            user        a person answered a prompt, or nobody could (claude -p cannot ask)
 //            unrecorded  the transcript has no permissionDecision (older Claude Code, or a tool that records none)
 //   result   allowed | refused | no-verdict   (no-verdict only for the classifier: it did not judge the action)
 
-export const SOURCES = ["static", "mode", "rule", "classifier", "hook", "user", "unrecorded"];
+export const SOURCES = ["static", "mode", "rule", "classifier", "hook", "safety", "user", "unrecorded"];
 
 // The texts of a classifier that gave no verdict. Each is a sentence Claude Code puts in front of the model; the first
 // five were seen on 2.1.299 by making a fake API fail in each way, the last two are quoted from the documentation.
@@ -75,7 +76,7 @@ export function classify(d) {
     out.via = d.serverReview ? "server" : "client";
     if (d.decision === "accept") { out.result = "allowed"; return out; }
     const nv = noVerdict(text) || (kind === "automode-unavailable" || kind === "automode-parsing-error" ? { cause: kind === "automode-unavailable" ? "unavailable" : "unparseable", service: true, detail: null } : null);
-    if (nv) { out.result = "no-verdict"; Object.assign(out, nv); return out; }
+    if (nv) { out.result = "no-verdict"; Object.assign(out, nv); if (nv.cause === "server-no-verdict") out.via = "server"; return out; }
     out.result = "refused";
     Object.assign(out, refusalReason(text));
     return out;
@@ -92,6 +93,7 @@ export function classify(d) {
     out.result = "unknown";
     return out;
   }
+  if (rt === "safetyCheck") { out.source = "safety"; return out; }
   if (rt === "hook" || src === "hook") { out.source = "hook"; return out; }
   if (rt === "rule") { out.source = "rule"; return out; }
   if (rt === "mode") { out.source = "mode"; return out; }
@@ -114,6 +116,7 @@ export const SOURCE_TEXT = {
   rule: "permission rule",
   classifier: "classifier",
   hook: "hook",
+  safety: "built-in safety check",
   user: "you",
   unrecorded: "not recorded",
 };

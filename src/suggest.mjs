@@ -90,7 +90,7 @@ export function suggestRules({ settings, report, min = 2, cwd, home, platform = 
     stats.lines += e.count;
     const r = rulesFor(e, { settings, cwd, home, platform });
     if (r.problem) { skipped.push({ subject: e.subject, count: e.count, reason: r.problem }); continue; }
-    if (!r.rules.length) { stats.covered++; continue; }
+    if (!r.rules.length) { stats.covered += e.count; continue; }
     // with these rules added, the whole line must stop going to the classifier
     const after = whyCommand({ tool: e.tool, command: e.subject, settings: withRules(settings, r.rules.map((n) => n.rule)), cwd, home, platform });
     if (after.outcome === "classifier") { skipped.push({ subject: e.subject, count: e.count, reason: `even with ${r.rules.map((n) => n.rule).join(" and ")} the line goes to the classifier: ${after.summary}` }); continue; }

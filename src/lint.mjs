@@ -80,7 +80,7 @@ export function lintSettings(settings) {
       if (replacesDefaults(texts)) {
         const n = texts.length;
         const removed = MEASURED.removedChars[key];
-        const full = n >= builtin;
+        const full = builtin >= 5 && n >= builtin; // a list as long as a long built-in one may be a copy you own on purpose
         add(f, {
           id: "replaces-defaults",
           severity: full ? "note" : key === "soft_deny" || key === "hard_deny" ? "error" : "warning",
