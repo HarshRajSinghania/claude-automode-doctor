@@ -1,0 +1,122 @@
+{
+  "version": "2.1.299",
+  "recordedWith": "2.1.299 (Claude Code)",
+  "platform": "win32",
+  "scenarios": {
+    "static-read-only": {
+      "file": "static-read-only.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "rule-allow-exact": {
+      "file": "rule-allow-exact.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "rule-allow-project": {
+      "file": "rule-allow-project.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "rule-allow-prefix": {
+      "file": "rule-allow-prefix.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "rule-deny": {
+      "file": "rule-deny.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "rule-ask": {
+      "file": "rule-ask.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "mode-write": {
+      "file": "mode-write.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "mode-edit-command": {
+      "file": "mode-edit-command.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "hook-allow": {
+      "file": "hook-allow.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "hook-deny": {
+      "file": "hook-deny.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "critical-path": {
+      "file": "critical-path.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "dont-ask": {
+      "file": "dont-ask.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "classifier-allow-one-request": {
+      "file": "classifier-allow-one-request.jsonl",
+      "calls": 1,
+      "classifierRequests": 1
+    },
+    "classifier-allow-two-requests": {
+      "file": "classifier-allow-two-requests.jsonl",
+      "calls": 1,
+      "classifierRequests": 2
+    },
+    "classifier-deny-category": {
+      "file": "classifier-deny-category.jsonl",
+      "calls": 1,
+      "classifierRequests": 2
+    },
+    "classifier-deny-no-category": {
+      "file": "classifier-deny-no-category.jsonl",
+      "calls": 1,
+      "classifierRequests": 2
+    },
+    "classifier-severity-50": {
+      "file": "classifier-severity-50.jsonl",
+      "calls": 1,
+      "classifierRequests": 2
+    },
+    "classifier-no-verdict-garbage": {
+      "file": "classifier-no-verdict-garbage.jsonl",
+      "calls": 1,
+      "classifierRequests": 10
+    },
+    "classifier-no-verdict-unavailable": {
+      "file": "classifier-no-verdict-unavailable.jsonl",
+      "calls": 1,
+      "classifierRequests": 10
+    },
+    "classifier-stage-two-error": {
+      "file": "classifier-stage-two-error.jsonl",
+      "calls": 1,
+      "classifierRequests": 2
+    },
+    "server-not-flagged": {
+      "file": "server-not-flagged.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "server-flagged": {
+      "file": "server-flagged.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    },
+    "server-skipped": {
+      "file": "server-skipped.jsonl",
+      "calls": 1,
+      "classifierRequests": 0
+    }
+  }
+}
