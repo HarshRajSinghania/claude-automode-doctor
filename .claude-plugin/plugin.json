@@ -1,0 +1,15 @@
+{
+  "name": "automode-doctor",
+  "displayName": "Automode Doctor",
+  "version": "1.0.0",
+  "description": "What Claude Code's auto mode and its classifier decided, from your transcripts, and a lint of the autoMode settings. One user-only skill: /automode-doctor:check.",
+  "author": { "name": "Naresh Prabu" },
+  "homepage": "https://github.com/nrzz/claude-automode-doctor",
+  "repository": "https://github.com/nrzz/claude-automode-doctor",
+  "documentationUrl": "https://github.com/nrzz/claude-automode-doctor#readme",
+  "supportUrl": "https://github.com/nrzz/claude-automode-doctor/issues",
+  "privacyPolicyUrl": "https://github.com/nrzz/claude-automode-doctor#privacy",
+  "termsOfServiceUrl": "https://github.com/nrzz/claude-automode-doctor/blob/main/LICENSE",
+  "license": "MIT",
+  "keywords": ["auto-mode", "classifier", "permissions", "safety", "transcripts", "settings"]
+}
