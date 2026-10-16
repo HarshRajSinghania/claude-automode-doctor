@@ -2,7 +2,7 @@
 // and per session, and the commands the classifier refused and the refusals that were no verdict.
 //
 // Days are UTC dates (the timestamps in a transcript are UTC). Nothing is written and nothing is sent anywhere.
-import { classify } from "./decisions.mjs";
+import { ASKED_INSTEAD, classify } from "./decisions.mjs";
 import { readDecisions, transcriptFiles } from "./transcripts.mjs";
 
 const DAY = 86400000;
@@ -84,16 +84,21 @@ export function buildReport({ configDir, project = null, days = 30, session = nu
       const subject = d.subject === null ? `(${d.tool})` : cut(d.subject, 500);
       if (d.result === "refused") {
         const k = `${d.tool}\u0000${subject}`;
-        const r = refused.get(k) || { tool: d.tool, subject, count: 0, category: d.category, reason: d.reason, last: d.ts, sessions: new Set() };
+        // asked: how many of the refusals were Claude Code asking instead (the third in a row); the category and the reason are
+        // the latest judged refusal's, since an asked-instead line carries none
+        const r = refused.get(k) || { tool: d.tool, subject, count: 0, asked: 0, category: d.fallback ? null : d.category, reason: d.fallback ? null : d.reason, last: d.ts, judgedLast: d.fallback ? "" : d.ts, sessions: new Set() };
         r.count++;
-        if (d.ts > r.last) { r.last = d.ts; r.category = d.category; r.reason = d.reason; }
+        if (d.fallback) r.asked++;
+        else if (d.ts > r.judgedLast) { r.judgedLast = d.ts; r.category = d.category; r.reason = d.reason; }
+        if (d.ts > r.last) r.last = d.ts;
         r.sessions.add(d.session);
         refused.set(k, r);
       } else if (d.result === "no-verdict") {
         const k = `${d.tool}\u0000${subject}`;
-        const r = noVerdict.get(k) || { tool: d.tool, subject, count: 0, cause: d.cause, detail: d.detail, service: d.service, last: d.ts, causes: {}, sessions: new Set() };
+        const r = noVerdict.get(k) || { tool: d.tool, subject, count: 0, cause: d.cause, detail: d.detail, service: d.service, serviceCount: 0, last: d.ts, causes: {}, sessions: new Set() };
         r.count++;
         r.causes[d.cause] = (r.causes[d.cause] || 0) + 1;
+        if (d.service) r.serviceCount++;
         if (d.ts > r.last) { r.last = d.ts; r.cause = d.cause; r.detail = d.detail; r.service = d.service; }
         r.sessions.add(d.session);
         noVerdict.set(k, r);
@@ -111,8 +116,8 @@ export function buildReport({ configDir, project = null, days = 30, session = nu
   return {
     configDir, project, window: { days, since: new Date(sinceMs).toISOString().slice(0, 10), until: new Date(now).toISOString().slice(0, 10), first, last },
     session, files: files.length, total: decisions.length, sources, classifier, tools, modes: byMode, days: days_, sessions,
-    refused: finish(refused), noVerdict: finish(noVerdict),
-    decisions: (limit > 0 ? decisions.slice(-limit) : []).map((d) => ({ ts: d.ts, day: (d.ts || "").slice(0, 10), session: d.session, project: d.cwd, mode: d.mode, tool: d.tool, subject: cut(d.subject, 500), source: d.source, result: d.result, via: d.via, category: d.category, reason: d.reason, cause: d.cause, service: d.service, permission: d.decision ? { decision: d.decision, source: d.permSource, reasonType: d.reasonType, kind: d.kind } : null })),
+    refused: finish(refused).map(({ judgedLast, ...r }) => ({ ...r, reason: r.asked === r.count ? ASKED_INSTEAD : r.reason })), noVerdict: finish(noVerdict),
+    decisions: (limit > 0 ? decisions.slice(-limit) : []).map((d) => ({ ts: d.ts, day: (d.ts || "").slice(0, 10), session: d.session, project: d.cwd, mode: d.mode, tool: d.tool, subject: cut(d.subject, 500), source: d.source, result: d.result, via: d.via, category: d.category, reason: d.reason, fallback: d.fallback, cause: d.cause, service: d.service, permission: d.decision ? { decision: d.decision, source: d.permSource, reasonType: d.reasonType, kind: d.kind } : null })),
     truncated: limit > 0 && decisions.length > limit, notes,
   };
 }

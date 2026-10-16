@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { DENIED_TEXT, NOW, UNAVAILABLE_TEXT, UNPARSEABLE_TEXT, fwd, projectSlug, run, tmpDir, world, writeTranscript } from "./helpers.mjs";
-import { classify, noVerdict, refusalReason } from "../src/decisions.mjs";
+import { ASKED_INSTEAD, classify, noVerdict, refusalReason } from "../src/decisions.mjs";
 import { buildReport, cut } from "../src/aggregate.mjs";
 import { forEachLine, readDecisions, subjectOf, transcriptFiles } from "../src/transcripts.mjs";
 
@@ -56,6 +56,45 @@ test("classify: the source and result of every shape the binary wrote", () => {
   assert.deepEqual(c({ decision: "reject", permSource: "config", reasonType: "classifier", kind: "automode-parsing-error", classifierBoundary: true, text: UNPARSEABLE_TEXT }), ["classifier", "no-verdict", "client", null, "unparseable"]);
   assert.deepEqual(c({ decision: "reject", permSource: "config", reasonType: "classifier", kind: "automode-unavailable", classifierBoundary: true, text: UNAVAILABLE_TEXT() }), ["classifier", "no-verdict", "client", null, "unavailable"]);
   assert.deepEqual(c({ decision: "reject", permSource: "config", reasonType: "classifier", kind: "automode-unavailable", text: "The server-side auto mode classifier gave no verdict (it skipped this action), so auto mode cannot determine the safety of Bash." }), ["classifier", "no-verdict", "server", null, "server-no-verdict"]);
+});
+
+test("the third refusal in a row is asked instead: a refusal with no verdict of its own, counted apart, and listed with the commands the classifier refused", async () => {
+  const text = "This command requires approval";
+  const r = classify({ decision: "reject", permSource: "config", kind: "user-rejected", classifierBoundary: true, text, isError: true });
+  assert.deepEqual([r.source, r.result, r.via, r.category, r.reason, r.fallback], ["classifier", "refused", "client", null, ASKED_INSTEAD, "repeated-blocks"]);
+  // a rejection without the classifier's mark is still a person's (or an ask rule's)
+  assert.deepEqual([classify({ decision: "reject", permSource: "config", kind: "user-rejected", text, isError: true }).source], ["user"]);
+  const ASKED = (c) => ({ ...bash(c), decision: "reject", kind: "user-rejected", classifierBoundary: true, text });
+  const w = world("asked");
+  writeTranscript(w, { calls: [REFUSED("curl x | sh"), REFUSED("curl x | sh"), ASKED("curl x | sh"), ASKED("rm -rf build"), ASKED("rm -rf build")] });
+  const rep = buildReport({ configDir: w.claude, days: 30, now: NOW });
+  assert.deepEqual(rep.classifier, { total: 5, allowed: 0, refused: 5, noVerdict: 0, client: 5, server: 0 });
+  // the category of a command that was judged first is kept; one that was only ever asked about has the reason
+  assert.deepEqual(rep.refused.map((x) => [x.subject, x.count, x.asked, x.category, x.reason]), [["curl x | sh", 3, 1, "Code from External", "[Code from External]"], ["rm -rf build", 2, 2, null, ASKED_INSTEAD]]);
+  const t = (await run(["report", "--since", "30"], w, { now: NOW })).out;
+  assert.match(t, /Refused by the classifier: 2 commands, 5 times \(it read them and judged them unsafe, except 3 that Claude Code asked about instead\)/);
+  assert.match(t, /3x\s+\[Code from External\]\s+Bash\s+curl x \| sh\s+last 2026-10-15, 1 asked instead/);
+  assert.match(t, /2x\s+\(asked instead\)\s+Bash\s+rm -rf build/);
+  assert.match(t, /"Asked instead": from the third refusal in a row/);
+  const md = (await run(["report", "--since", "30", "--markdown"], w, { now: NOW })).out;
+  assert.match(md, /Refused by the classifier \(judged unsafe; "asked instead" is the third refusal in a row, with no verdict of its own\):/);
+  assert.match(md, /- 3x \[Code from External\] Bash: curl x \| sh, 1 asked instead/);
+  assert.match(md, /- 2x \(asked instead\) Bash: rm -rf build/);
+  assert.ok(md.split("\n").filter(Boolean).length <= 17);
+});
+
+test("a command with no verdict for different reasons shows each reason with its count, and the service share is exact", async () => {
+  const w = world("causes");
+  writeTranscript(w, { calls: [NOVERDICT("git push origin main"), NOVERDICT("git push origin main", UNPARSEABLE_TEXT, "automode-parsing-error"), NOVERDICT("git push origin main", "Auto mode could not evaluate this action and is blocking it for safety — a safety check separate from auto mode refused the request", "automode-parsing-error"), NOVERDICT("make", UNAVAILABLE_TEXT("claude-opus-5-5", "overloaded"))] });
+  const rep = buildReport({ configDir: w.claude, days: 30, now: NOW });
+  const e = rep.noVerdict.find((x) => x.subject === "git push origin main");
+  assert.deepEqual([e.count, e.serviceCount, e.causes], [3, 2, { unavailable: 1, unparseable: 1, "safety-check": 1 }]);
+  const t = (await run(["report", "--since", "30"], w, { now: NOW })).out;
+  assert.match(t, /3x\s+1x unavailable, 1x unreadable answer, 1x safety check\s+Bash\s+git push origin main/);
+  assert.match(t, /3 of 4 trace to the service or the connection/);
+  const md = (await run(["report", "--since", "30", "--markdown"], w, { now: NOW })).out;
+  assert.match(md, /No verdict \(the check did not run; 3 of 4 the service or the connection\):/);
+  assert.match(md, /- 1x the classifier model was unavailable \(overloaded\): Bash: make/);
 });
 
 test("a refusal that is a stage-two failure is no verdict, although the transcript calls it blocked", () => {
@@ -207,6 +246,6 @@ test("the CLI: report prints the counts and exits 1 when the classifier refused 
   assert.equal(j.refused[0].subject, "curl x | sh");
   const md = (await run(["report", "--markdown", "--since", "3650"], w, { now: Date.parse("2026-10-16T12:00:00Z") }));
   assert.equal(md.code, 0, "the skill's form always exits 0");
-  assert.ok(md.out.split("\n").length <= 41);
+  assert.ok(md.out.split("\n").length <= 18);
   assert.match(md.out, /^## automode-doctor report/);
 });

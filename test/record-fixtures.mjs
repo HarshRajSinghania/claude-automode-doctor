@@ -48,8 +48,11 @@ export async function record(only = null) {
       const at = (n) => new Date(t0 + n * 1000).toISOString();
       const lines = r.lines;
       const prompt = lines.find((x) => x.type === "user" && typeof (x.message && x.message.content) === "string");
-      const use = lines.find((x) => x.type === "assistant" && Array.isArray(x.message && x.message.content) && x.message.content.some((b) => b.type === "tool_use"));
-      const result = lines.find((x) => x.type === "user" && Array.isArray(x.message && x.message.content) && x.message.content.some((b) => b.type === "tool_result"));
+      // the call the scenario is about (the first, unless it says `at`), and the line that answers it
+      const uses = lines.filter((x) => x.type === "assistant" && Array.isArray(x.message && x.message.content) && x.message.content.some((b) => b.type === "tool_use"));
+      const use = uses[sc.at || 0];
+      const wanted = use && use.message.content.find((b) => b.type === "tool_use");
+      const result = wanted && lines.find((x) => x.type === "user" && Array.isArray(x.message && x.message.content) && x.message.content.some((b) => b.type === "tool_result" && b.tool_use_id === wanted.id));
       if (!prompt || !use || !result) throw new Error(`${sc.name}: the transcript has no ${!prompt ? "prompt" : !use ? "tool call" : "result"} line`);
       const common = { cwd: "/home/me/shop", sessionId: session, version: info.number };
       const useBlock = use.message.content.find((b) => b.type === "tool_use");

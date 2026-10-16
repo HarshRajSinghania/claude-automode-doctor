@@ -88,6 +88,11 @@
       "calls": 1,
       "classifierRequests": 2
     },
+    "classifier-repeated-blocks": {
+      "file": "classifier-repeated-blocks.jsonl",
+      "calls": 3,
+      "classifierRequests": 6
+    },
     "classifier-no-verdict-garbage": {
       "file": "classifier-no-verdict-garbage.jsonl",
       "calls": 1,

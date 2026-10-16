@@ -49,8 +49,9 @@ for (const sc of SCENARIOS) {
     const r = await runScenario(sc);
     try {
       const e = sc.expect;
-      assert.equal(r.calls.length, 1, `the call reached the model's tool result once: ${r.run.err.slice(0, 300)}`);
-      const c = r.calls[0];
+      const at = sc.at || 0;
+      assert.equal(r.calls.length, sc.calls.length, `each call reached the model's tool result once: ${r.run.err.slice(0, 300)}`);
+      const c = r.calls[at];
       // the fields Claude Code wrote on the tool_result line
       assert.equal(c.decision && c.decision.decision, e.decision, `permissionDecision.decision: ${JSON.stringify(c.decision)}`);
       assert.equal(c.decision && c.decision.source, e.permSource, "permissionDecision.source");
@@ -61,17 +62,19 @@ for (const sc of SCENARIOS) {
       if (e.text) assert.match(c.text, e.text, "what the model was told");
       // the JSON result lists a refused call
       const refused = e.decision === "reject";
-      assert.equal(r.run.result.permission_denials.length, refused ? 1 : 0, "permission_denials");
+      assert.equal(r.run.result.permission_denials.length, refused ? sc.denials || 1 : 0, "permission_denials");
       // the classifier requests the fake API saw
       assert.equal(r.classifier.length, e.classifier, `classifier requests: ${r.classifier.length}`);
       // and what the tool says about the line it wrote
       const rep = buildReport({ configDir: r.sb.cfg, days: 3650 });
-      assert.equal(rep.decisions.length, 1);
-      const d = rep.decisions[0];
+      assert.equal(rep.decisions.length, sc.calls.length);
+      const d = rep.decisions[at];
       assert.equal(d.source, e.source, `report: source ${d.source}`);
       assert.equal(d.result, e.result, `report: result ${d.result}`);
       if (e.via) assert.equal(d.via, e.via, "report: via");
       if (e.category !== undefined) assert.equal(d.category, e.category, "report: category");
+      if (e.reason) assert.equal(d.reason, e.reason, "report: reason");
+      if (e.fallback) assert.equal(d.fallback, e.fallback, "report: fallback");
       if (e.cause) { assert.equal(d.cause, e.cause, "report: cause"); assert.equal(d.service, e.service, "report: service"); }
       if (e.detail) assert.equal(rep.noVerdict[0].detail, e.detail, "report: the category in parentheses");
     } finally { await finishScenario(r); }

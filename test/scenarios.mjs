@@ -5,6 +5,8 @@
 // A scenario: { name, about, calls, settings: { user, project, local }, files, mode, args, env, stage1, stage2, server,
 //               expect: { ... } }
 //   calls    the tool calls the fake model makes, one per turn
+//   at       which call the scenario is about (default 0, the first); denials: how many calls the JSON result lists as refused
+//            when it is not just the one
 //   stage1, stage2, server   what the fake classifier and the fake server answer (see claude-sandbox.mjs)
 //   expect   source, result (what `report` must say), the permissionDecision fields, toolDenialKind, whether the client's
 //            own classifier boundary or the server's review stamped the line, how many classifier requests were seen
@@ -103,6 +105,11 @@ export const SCENARIOS = [
     expect: { source: "classifier", result: "refused", via: "client", decision: "reject", permSource: "config", reasonType: "classifier", kind: "automode-blocked", boundary: true, server: false, classifier: 2 },
   },
   {
+    name: "classifier-repeated-blocks", about: "the third refusal in a row is not shown as a refusal: Claude Code asks instead, and claude -p, with nobody to ask, refuses with a sentence about approval (the classifier is still asked)",
+    calls: [bash(RISKY), bash(RISKY), bash(RISKY)], at: 2, denials: 3, stage1: severity(95), stage2: stage2(95, "Code from External"),
+    expect: { source: "classifier", result: "refused", via: "client", category: null, reason: "asked instead (repeated blocks)", fallback: "repeated-blocks", decision: "reject", permSource: "config", reasonType: null, kind: "user-rejected", boundary: true, server: false, classifier: 6, text: /require(?:s)? approval/ },
+  },
+  {
     name: "classifier-no-verdict-garbage", about: "the classifier answers text that is not a verdict: five attempts at each stage, then 'could not evaluate'",
     calls: [bash(RISKY)], stage1: "ok", stage2: "ok", timeout: 120000,
     expect: { source: "classifier", result: "no-verdict", via: "client", cause: "unparseable", service: true, decision: "reject", permSource: "config", reasonType: "classifier", kind: "automode-parsing-error", boundary: true, server: false, classifier: 10, text: /Auto mode could not evaluate this action and is blocking it for safety/ },
@@ -147,7 +154,7 @@ export async function runScenario(sc, { timeout } = {}) {
   for (const [rel, body] of Object.entries(sc.files || {})) put(path.join(sb.work, rel), body);
   const api = await fakeApi({ calls: sc.calls, stage1: sc.stage1, stage2: sc.stage2, server: sc.server });
   try {
-    const run = await runClaude(sb, api, ["-p", "run it", "--output-format", "json", "--permission-mode", sc.mode || "auto", "--max-turns", "2", ...(sc.args || [])], { env: sc.env || {}, timeout: timeout || sc.timeout || (sc.slow ? 180000 : 120000) });
+    const run = await runClaude(sb, api, ["-p", "run it", "--output-format", "json", "--permission-mode", sc.mode || "auto", "--max-turns", String(Math.max(2, sc.calls.length + 1)), ...(sc.args || [])], { env: sc.env || {}, timeout: timeout || sc.timeout || (sc.slow ? 180000 : 120000) });
     return { sb, api, run, calls: callsOf(sb), classifier: api.classifier(), lines: transcriptLines(sb) };
   } catch (e) {
     await api.close();

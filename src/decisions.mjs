@@ -14,6 +14,11 @@
 
 export const SOURCES = ["static", "mode", "rule", "classifier", "hook", "safety", "user", "unrecorded"];
 
+// From the third refusal in a row, Claude Code does not show the classifier's refusal any more: it asks, as the documentation
+// says ("Claude Code resumes prompting"). claude -p has nobody to ask, so the call is refused with this sentence and the
+// transcript line has no reasonType but the classifier's boundary mark. The classifier was still asked (two requests a call).
+export const ASKED_INSTEAD = "asked instead (repeated blocks)";
+
 // The texts of a classifier that gave no verdict. Each is a sentence Claude Code puts in front of the model; the first
 // five were seen on 2.1.299 by making a fake API fail in each way, the last two are quoted from the documentation.
 const NO_VERDICT = [
@@ -64,7 +69,7 @@ export function noVerdict(text) {
  *   via  for the classifier "client" (Claude Code's own requests) or "server" (the review done with the model request)
  */
 export function classify(d) {
-  const out = { source: "unrecorded", result: d.decision === "accept" ? "allowed" : d.decision === "reject" ? "refused" : "unknown", via: null, category: null, reason: null, cause: null, service: null, detail: null };
+  const out = { source: "unrecorded", result: d.decision === "accept" ? "allowed" : d.decision === "reject" ? "refused" : "unknown", via: null, category: null, reason: null, cause: null, service: null, detail: null, fallback: null };
   const text = d.text || "";
   const kind = d.kind || "";
   const rt = d.reasonType || "";
@@ -78,6 +83,11 @@ export function classify(d) {
     const nv = noVerdict(text) || (kind === "automode-unavailable" || kind === "automode-parsing-error" ? { cause: kind === "automode-unavailable" ? "unavailable" : "unparseable", service: true, detail: null } : null);
     if (nv) { out.result = "no-verdict"; Object.assign(out, nv); if (nv.cause === "server-no-verdict") out.via = "server"; return out; }
     out.result = "refused";
+    if (kind === "user-rejected" && !rt) {
+      out.reason = ASKED_INSTEAD;
+      out.fallback = "repeated-blocks";
+      return out;
+    }
     Object.assign(out, refusalReason(text));
     return out;
   }

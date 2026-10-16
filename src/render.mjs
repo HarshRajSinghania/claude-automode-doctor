@@ -27,6 +27,17 @@ export function wrap(text, width) {
 const pad = (s, n) => String(s).padEnd(n);
 const rpad = (s, n) => String(s).padStart(n);
 const clip = (s, n) => { const t = String(s).replace(/\s+/g, " "); return t.length > n ? `${t.slice(0, n - 3)}...` : t; };
+const SHORT_CAUSE = { unavailable: "unavailable", "server-no-verdict": "no server verdict", "stage-two-error": "stage two failed", "safety-check": "safety check", unparseable: "unreadable answer", "context-window": "too long" };
+/** Why the check gave no verdict: the one cause in words, or the causes with their counts when there were several. */
+const causeLabel = (r) => {
+  const kinds = Object.entries(r.causes || {});
+  if (kinds.length > 1) return kinds.map(([k, c]) => `${c}x ${SHORT_CAUSE[k] || k}`).join(", ");
+  return `${NO_VERDICT_CAUSES[r.cause] || r.cause}${r.detail ? ` (${r.detail})` : ""}`;
+};
+/** The rule a refusal named, as the tables show it: [Category], or the reason, or that Claude Code asked instead. */
+const refusalLabel = (r, width = 30) => (r.category ? `[${r.category}]` : r.asked && r.asked === r.count ? "(asked instead)" : r.reason ? clip(r.reason, width) : "(no reason)");
+/** ", 2 asked instead" for a command that was refused by the classifier and, later, asked about instead. */
+const askedNote = (r) => (r.asked && r.asked < r.count ? `, ${r.asked} asked instead` : "");
 const where = (f) => `${f.display}${f.line ? `:${f.line}` : ""}`;
 const BT = "`";
 const day = (iso) => (iso || "").slice(0, 10);
@@ -82,17 +93,19 @@ export function renderReport(m, { color = false } = {}) {
   out.push("");
   if (m.refused.length) {
     const n = m.refused.reduce((a, r) => a + r.count, 0);
-    out.push(p.bold(`Refused by the classifier: ${plural(m.refused.length, "command")}, ${plural(n, "time")} (it read them and judged them unsafe)`));
-    for (const r of m.refused.slice(0, 10)) out.push(`  ${rpad(`${r.count}x`, 4)}  ${pad(r.category ? `[${r.category}]` : r.reason ? clip(r.reason, 30) : "(no reason)", 24)} ${pad(r.tool, 5)} ${clip(r.subject, 70)}  ${p.dim(`last ${day(r.last)}`)}`);
+    const asked = m.refused.reduce((a, r) => a + (r.asked || 0), 0);
+    out.push(p.bold(`Refused by the classifier: ${plural(m.refused.length, "command")}, ${plural(n, "time")} (it read them and judged them unsafe${asked ? `, except ${asked} that Claude Code asked about instead` : ""})`));
+    for (const r of m.refused.slice(0, 10)) out.push(`  ${rpad(`${r.count}x`, 4)}  ${pad(refusalLabel(r), 24)} ${pad(r.tool, 5)} ${clip(r.subject, 70)}  ${p.dim(`last ${day(r.last)}${askedNote(r)}`)}`);
     if (m.refused.length > 10) out.push(p.dim(`  ... and ${m.refused.length - 10} more commands (run with --json for all)`));
+    if (asked) for (const l of wrap("\"Asked instead\": from the third refusal in a row Claude Code asks you instead of showing the classifier's refusal (claude -p, with nobody to ask, refuses the call). The classifier's own answer to those is not in the transcript.", 96)) out.push(p.dim(`  ${l}`));
     out.push("");
   }
   if (m.noVerdict.length) {
     const n = m.noVerdict.reduce((a, r) => a + r.count, 0);
     out.push(p.bold(`No verdict: ${plural(n, "time")} on ${plural(m.noVerdict.length, "command")}. The check did not judge these, so they say nothing about the commands`));
-    for (const r of m.noVerdict.slice(0, 10)) out.push(`  ${rpad(`${r.count}x`, 4)}  ${pad(clip(`${NO_VERDICT_CAUSES[r.cause] || r.cause}${r.detail ? ` (${r.detail})` : ""}`, 48), 49)} ${pad(r.tool, 5)} ${clip(r.subject, 50)}  ${p.dim(`last ${day(r.last)}`)}`);
+    for (const r of m.noVerdict.slice(0, 10)) out.push(`  ${rpad(`${r.count}x`, 4)}  ${pad(clip(causeLabel(r), 56), 57)} ${pad(r.tool, 5)} ${clip(r.subject, 50)}  ${p.dim(`last ${day(r.last)}`)}`);
     if (m.noVerdict.length > 10) out.push(p.dim(`  ... and ${m.noVerdict.length - 10} more commands`));
-    const svc = m.noVerdict.reduce((a, r) => a + (r.service ? r.count : 0), 0);
+    const svc = m.noVerdict.reduce((a, r) => a + r.serviceCount, 0);
     out.push(p.dim(svc === n ? "  All of them trace to the service or the connection, not to your settings." : `  ${svc} of ${n} trace to the service or the connection; the others to the conversation (a safety check, or a transcript too long for the classifier).`));
     out.push("");
   }
@@ -101,7 +114,7 @@ export function renderReport(m, { color = false } = {}) {
 }
 
 /** The short form the skill hands to Claude: at most `max` lines. */
-export function markdownReport(m, { max = 40, width = 200 } = {}) {
+export function markdownReport(m, { max = 17, width = 200 } = {}) {
   const L = [];
   L.push(`## automode-doctor report: ${m.project || "all projects"}`);
   if (!m.total) { L.push(`No tool decision in the last ${plural(m.window.days, "day")}.`); return `${L.join("\n")}\n`; }
@@ -109,14 +122,14 @@ export function markdownReport(m, { max = 40, width = 200 } = {}) {
   L.push(`${plural(m.total, "tool decision")} in ${plural(m.sessions.length, "session")}, last ${plural(m.window.days, "day")} (UTC). Classifier: ${c.total} (${c.allowed} allowed, ${c.refused} refused, ${c.noVerdict} no verdict; ${c.client} by Claude Code's own requests, ${c.server} by the server's review).`);
   L.push(`By source: ${sourceRows(m).filter((r) => r.key !== "classifier").map((r) => `${r.label} ${r.total}`).join(", ") || "none besides the classifier"}.`);
   if (m.refused.length) {
-    L.push(`Refused by the classifier (judged unsafe):`);
-    for (const r of m.refused.slice(0, 6)) L.push(clip(`- ${r.count}x ${r.category ? `[${r.category}] ` : ""}${r.tool}: ${r.subject}`, width));
+    L.push(m.refused.some((r) => r.asked) ? `Refused by the classifier (judged unsafe; "asked instead" is the third refusal in a row, with no verdict of its own):` : `Refused by the classifier (judged unsafe):`);
+    for (const r of m.refused.slice(0, 6)) L.push(clip(`- ${r.count}x ${r.category || r.asked ? `${refusalLabel(r)} ` : ""}${r.tool}: ${r.subject}${askedNote(r)}`, width));
   }
   if (m.noVerdict.length) {
-    const svc = m.noVerdict.reduce((a, r) => a + (r.service ? r.count : 0), 0);
+    const svc = m.noVerdict.reduce((a, r) => a + r.serviceCount, 0);
     const n = m.noVerdict.reduce((a, r) => a + r.count, 0);
     L.push(`No verdict (the check did not run; ${svc === n ? "the service or the connection, not your settings" : `${svc} of ${n} the service or the connection`}):`);
-    for (const r of m.noVerdict.slice(0, 5)) L.push(clip(`- ${r.count}x ${NO_VERDICT_CAUSES[r.cause] || r.cause}: ${r.tool}: ${r.subject}`, width));
+    for (const r of m.noVerdict.slice(0, 5)) L.push(clip(`- ${r.count}x ${causeLabel(r)}: ${r.tool}: ${r.subject}`, width));
   }
   const worst = m.days.slice().sort((a, b) => b.classifier.refused + b.classifier.noVerdict - (a.classifier.refused + a.classifier.noVerdict))[0];
   if (worst && worst.classifier.refused + worst.classifier.noVerdict > 0) L.push(`Worst day: ${worst.day} (${worst.classifier.refused} refused, ${worst.classifier.noVerdict} no verdict).`);
@@ -299,7 +312,11 @@ export function renderSuggest(m, { color = false } = {}) {
   if (!m.proposals.length) out.push("No rule to propose: nothing was turned back that often, or no rule would help.");
   for (const g of m.proposals) {
     out.push(`${p.bold(g.rule)}   ${g.count}x`);
-    out.push(`    ${g.judged ? `the classifier judged it unsafe ${g.judged}x${g.categories.length ? ` (${g.categories.map((c) => `[${c}]`).join(", ")})` : ""}: with this rule it runs unchecked` : ""}${g.judged && g.noVerdict ? "; " : ""}${g.noVerdict ? `${g.noVerdict}x the check gave no verdict (${g.causes.map((c) => NO_VERDICT_CAUSES[c] || c).join(", ")})` : ""}`);
+    const said = [];
+    if (g.judged) said.push(`the classifier judged it unsafe ${g.judged}x${g.categories.length ? ` (${g.categories.map((c) => `[${c}]`).join(", ")})` : ""}: with this rule it runs unchecked`);
+    if (g.asked) said.push(`${g.asked}x Claude Code asked instead, after three refusals in a row${g.judged ? "" : ": with this rule it runs unchecked"}`);
+    if (g.noVerdict) said.push(`${g.noVerdict}x the check gave no verdict (${g.causes.map((c) => NO_VERDICT_CAUSES[c] || c).join(", ")})`);
+    out.push(`    ${said.join("; ")}`);
     if (g.risk) out.push(p.yellow(`    the rule ${g.risk}`));
     for (const e of g.examples) out.push(p.dim(`    e.g. ${clip(e, 90)}`));
   }
@@ -313,7 +330,7 @@ export function renderSuggest(m, { color = false } = {}) {
     out.push(renderWrite(m.write, { color }).trimEnd());
   } else if (m.proposals.length) {
     out.push("");
-    out.push(p.dim(`To add them: claude-automode-doctor suggest --write --user   (--dry-run first shows the change; ${m.proposals.some((g) => g.judged) ? "--include-judged also adds the ones the classifier judged unsafe" : "nothing here was judged unsafe"})`));
+    out.push(p.dim(`To add them: claude-automode-doctor suggest --write --user   (--dry-run first shows the change; ${m.proposals.some((g) => g.judged || g.asked) ? "--include-judged also adds the ones the classifier judged unsafe or Claude Code asked about instead" : "nothing here was judged unsafe"})`));
   }
   return `${out.join("\n")}\n`;
 }

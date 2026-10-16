@@ -20,7 +20,7 @@ Read (they change nothing):
            that were no verdict (the check did not run: the service, not your settings). All
            projects, or one with --project; the last 30 days, or --since. Exit 1 when the classifier
            refused or gave no verdict in that window. --markdown is the short report the
-           /automode-doctor:check skill hands to Claude (at most 40 lines); it always exits 0
+           /automode-doctor:check skill hands to Claude (at most 17 lines); it always exits 0
   why      "<command>" [--project <dir>] [--tool Bash|PowerShell]
            whether the command goes to the classifier in auto mode, or is approved without it (read-only,
            an allow rule, a file command the mode approves), or is refused by a deny rule or asked about
@@ -45,7 +45,7 @@ Change settings (a settings file is saved next to itself first; --dry-run shows 
            allow rules for commands the classifier turned back at least <n> times (default 2), each
            checked: it is not a broad rule auto mode drops, and with it the command skips the
            classifier. --write adds the ones the check never judged; --include-judged also adds those
-           the classifier called unsafe
+           the classifier called unsafe, or Claude Code asked about instead (the third refusal in a row)
   restore  (--user | --local | --project <dir>) [--dry-run]
            put the newest backup back; the file as it was is saved first, so restore can be undone
 

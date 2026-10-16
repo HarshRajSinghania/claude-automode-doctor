@@ -97,10 +97,16 @@ export function suggestRules({ settings, report, min = 2, cwd, home, platform = 
     for (const n of r.rules) {
       const key = `${e.tool}\u0000${e.tool === "PowerShell" ? n.rule.toLowerCase() : n.rule}`;
       let g = groups.get(key);
-      if (!g) { g = { rule: n.rule, tool: e.tool, key: n.key, count: 0, judged: 0, noVerdict: 0, categories: new Set(), causes: new Set(), risk: n.risk, examples: [], last: "", lines: new Set() }; groups.set(key, g); }
+      if (!g) { g = { rule: n.rule, tool: e.tool, key: n.key, count: 0, judged: 0, asked: 0, noVerdict: 0, categories: new Set(), causes: new Set(), risk: n.risk, examples: [], last: "", lines: new Set() }; groups.set(key, g); }
       g.count += e.count;
       g.lines.add(e.subject);
-      if (e.kind === "judged") { g.judged += e.count; if (e.category || e.reason) g.categories.add(e.category || e.reason); } else { g.noVerdict += e.count; if (e.cause) g.causes.add(e.cause); }
+      if (e.kind === "judged") {
+        // an asked-instead refusal is the third in a row: the classifier's own answer to it is not in the transcript
+        g.judged += e.count - (e.asked || 0);
+        g.asked += e.asked || 0;
+        if (e.category) g.categories.add(e.category);
+        else if (e.reason && e.asked !== e.count) g.categories.add(e.reason);
+      } else { g.noVerdict += e.count; if (e.cause) g.causes.add(e.cause); }
       if (g.examples.length < 3 && !g.examples.includes(e.subject)) g.examples.push(e.subject.length > 90 ? `${e.subject.slice(0, 87)}...` : e.subject);
       if (e.last > g.last) g.last = e.last;
     }
@@ -108,7 +114,7 @@ export function suggestRules({ settings, report, min = 2, cwd, home, platform = 
   const proposals = [];
   for (const g of groups.values()) {
     if (g.count < min) { stats.below++; continue; }
-    proposals.push({ rule: g.rule, tool: g.tool, key: g.key, count: g.count, judged: g.judged, noVerdict: g.noVerdict, categories: [...g.categories], causes: [...g.causes], risk: g.risk, examples: g.examples, last: g.last, lines: g.lines.size, skipsClassifier: true });
+    proposals.push({ rule: g.rule, tool: g.tool, key: g.key, count: g.count, judged: g.judged, asked: g.asked, noVerdict: g.noVerdict, categories: [...g.categories], causes: [...g.causes], risk: g.risk, examples: g.examples, last: g.last, lines: g.lines.size, skipsClassifier: true });
   }
   proposals.sort((a, b) => b.count - a.count || a.rule.localeCompare(b.rule));
   return { proposals, skipped, stats };

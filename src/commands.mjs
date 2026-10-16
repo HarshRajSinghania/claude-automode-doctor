@@ -86,8 +86,8 @@ export function buildSuggestModel(o) {
   const model = { ok: true, project: s.project, window: report.window, min, includeJudged: Boolean(o.includeJudged), ...r, write: null };
   if (o.write) {
     const t = targetFile({ user: o.user, local: o.local, project: o.targetProject, cwd: o.cwd, env: b.env, home: b.home, platform: b.platform });
-    const chosen = r.proposals.filter((g) => o.includeJudged || g.judged === 0).map((g) => g.rule);
-    const held = r.proposals.filter((g) => !o.includeJudged && g.judged > 0).map((g) => g.rule);
+    const chosen = r.proposals.filter((g) => o.includeJudged || (g.judged === 0 && g.asked === 0)).map((g) => g.rule);
+    const held = r.proposals.filter((g) => !o.includeJudged && (g.judged > 0 || g.asked > 0)).map((g) => g.rule);
     const w = addAllowRules(t.file, chosen, { scope: t.target, dryRun: o.dryRun, now: o.now !== undefined ? new Date(o.now) : new Date(), settings: s });
     model.write = { ...w, held };
     model.ok = !w.skipped;

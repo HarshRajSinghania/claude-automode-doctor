@@ -31,7 +31,7 @@ export function buildCost({ report = null } = {}) {
     measured: { version: m.version, date: m.date, platform: m.platform },
     stages: [stageOne, stageTwo],
     perCommand,
-    prompt: { chars: m.prompt.chars, blocks: m.prompt.blocks, cached: "the large block carries cache_control ephemeral" },
+    prompt: { chars: m.prompt.chars, blocks: m.prompt.blocks, cached: "The large block of the system prompt carries cache_control \"ephemeral\", so prompt caching can apply; the fake API cannot show whether it did" },
     billing: {
       notice: "We're changing auto mode to no longer charge for classifier requests in Claude Code. However, this session isn't eligible",
       url: BILLING_URL,

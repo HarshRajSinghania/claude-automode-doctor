@@ -35,6 +35,8 @@ for (const sc of SCENARIOS) {
     assert.equal(c.result, e.result, "result");
     if (e.via) assert.equal(c.via, e.via, "via");
     if (e.category !== undefined) assert.equal(c.category, e.category, "category");
+    if (e.reason) assert.equal(c.reason, e.reason, "reason");
+    if (e.fallback) assert.equal(c.fallback, e.fallback, "fallback");
     if (e.cause) assert.deepEqual([c.cause, c.service], [e.cause, e.service]);
   });
 }
