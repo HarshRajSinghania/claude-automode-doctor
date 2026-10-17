@@ -31,6 +31,8 @@ claude-automode-doctor reads the decisions Claude Code records in its transcript
 
 What auto mode itself costs is a different matter and `cost` shows it: each command that reaches the classifier sends one or two requests of about 35,000 tokens each (a 140,489-character system prompt), see [`cost`](#cost).
 
+For a report with decisions, a date window replaces `last N days` with `since YYYY-MM-DD` on the same line: at most 6 extra characters (about 2 tokens by characters / 4). Numeric windows and the 17-line cap are unchanged.
+
 ## Install
 
 **From a terminal**, with Node 18 or newer. There is nothing to install and no dependency:
@@ -657,9 +659,9 @@ It reads transcripts and settings files on your machine and sends nothing anywhe
 
 Checked on 2026-10-16 on Windows 11 with Node 24.19.0, git 2.55.0 and Claude Code 2.1.295 and 2.1.299 (every real-binary check passed on both). CI runs the unit tests on Linux, macOS and Windows with Node 20, 22 and 24 and on Linux with Node 18. It runs the real-binary checks on Linux and macOS against the npm release of Claude Code (2.1.301). All 12 jobs (10 of the unit tests, 2 of the real-binary checks) were green for the first time on commit 4e3512e, on 2026-10-16. The badges at the top show the latest runs.
 
-- **202 automated tests** (`npm test`, Node's own runner, no dependencies, about 7 seconds). `node --test` also reports each of the 7 helper files under `test/` as a passing test, on Node 20 and newer; those are not counted here. Without a Claude Code binary 148 pass on Windows and 147 on Linux and macOS, where one test of the PowerShell tool is skipped; the 54 real-binary checks below are skipped everywhere. The tests cover:
+- **204 automated tests** (`npm test`, Node's own runner, no dependencies, about 7 seconds). `node --test` also reports each of the 7 helper files under `test/` as a passing test, on Node 20 and newer; those are not counted here. Without a Claude Code binary 150 pass on Windows and 149 on Linux and macOS, where one test of the PowerShell tool is skipped; the 54 real-binary checks below are skipped everywhere. The tests cover:
   - the transcript reader and the classification of every shape the binary wrote (the 24 fixtures in `test/fixtures/`, recorded from the binary), older transcripts, resumed sessions, lines that are not JSON, folders that only share a prefix;
-  - the report: counts per source, per day and per session, the window, `--session`, the refused commands, the no-verdict causes, the asked-instead calls, the 17-line cap of the markdown form;
+  - the report: counts per source, per day and per session, the window, `--session`, the refused commands, the no-verdict causes, the asked-instead calls, the requested date or day count in the Markdown summary, the 17-line cap of the markdown form;
   - the settings loader (precedence, managed drop-ins, a file that is not JSON, wrong types, paths with spaces), `show` and the lint (every finding, with the numbers measured);
   - `why`: the order of the checks, deny and ask rules, allow rules and the ones auto mode drops (every rule shape that was put to the binary, kept or dropped as the binary did), `classifyAllShell`, critical and protected paths, additional directories, `cd` beside a Read deny rule, PowerShell on Windows, and the table of 612 commands: what `why` says for each row, without a binary;
   - `suggest` (the check that a proposed rule makes the command skip the classifier, `--write` with its backups, the held-back judged commands) and `restore`;

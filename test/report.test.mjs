@@ -177,6 +177,24 @@ test("report: the window, --session, and --project", () => {
   assert.equal(buildReport({ configDir: w.claude, days: 30, now: NOW, project: other }).total, 1);
 });
 
+test("report --markdown: a date window names the date that was asked for", async () => {
+  const w = world("markdown-date");
+  writeTranscript(w, { calls: [A("echo a"), REFUSED("curl x | sh")] });
+  const r = await run(["report", "--since", "2026-10-12", "--markdown"], w, { now: NOW });
+  assert.match(r.out.split("\n")[1], /^2 tool decisions in 1 session, since 2026-10-12 \(UTC\)\. Classifier:/);
+  assert.equal(r.code, 0, "the skill's form exits 0 even with a refusal");
+  assert.ok(r.out.trimEnd().split("\n").length <= 17);
+});
+
+test("report --markdown: a number window keeps the last N days wording", async () => {
+  const w = world("markdown-days");
+  writeTranscript(w, { calls: [A("echo a"), REFUSED("curl x | sh")] });
+  const r = await run(["report", "--since", "7", "--markdown"], w, { now: NOW });
+  assert.match(r.out.split("\n")[1], /^2 tool decisions in 1 session, last 7 days \(UTC\)\. Classifier:/);
+  assert.equal(r.code, 0, "the skill's form exits 0 even with a refusal");
+  assert.ok(r.out.trimEnd().split("\n").length <= 17);
+});
+
 test("report: --since takes a date from the start of that day in UTC, and a number of days and the matching date agree", async () => {
   const w = world("since");
   writeTranscript(w, { session: "aaaaaaaa-1111-4111-8111-111111111111", start: "2026-10-09T09:00:00.000Z", calls: [A("echo old")] });

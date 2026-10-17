@@ -4,6 +4,8 @@ All notable changes to claude-automode-doctor are written here. The format follo
 
 ## [Unreleased]
 
+- `report --markdown --since YYYY-MM-DD` names the requested date in its summary instead of converting it to a day count. Numeric windows keep their wording, and the report still has at most 17 lines and exits 0.
+
 ## [1.1.0] - 2026-10-16
 
 - `--since` takes a date as well as a number of days: `--since 2026-10-01` is from the start of that day in UTC, the way the report counts days, and `report`, `cost` and `suggest` take it the same way. The window line says what was asked for (`the last 7 days`, or `since 2026-10-01`), and the JSON `window` carries the date and the number of days it covers. The number form is unchanged. A date in the future, or one that is not a date (`--since 2026-13-40`), is a usage error (exit 2) that names both forms.

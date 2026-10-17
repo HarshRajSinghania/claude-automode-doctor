@@ -122,7 +122,7 @@ export function markdownReport(m, { max = 17, width = 200 } = {}) {
   L.push(`## automode-doctor report: ${m.project || "all projects"}`);
   if (!m.total) { L.push(`No tool decision in the last ${plural(m.window.days, "day")}.`); return `${L.join("\n")}\n`; }
   const c = m.classifier;
-  L.push(`${plural(m.total, "tool decision")} in ${plural(m.sessions.length, "session")}, last ${plural(m.window.days, "day")} (UTC). Classifier: ${c.total} (${c.allowed} allowed, ${c.refused} refused, ${c.noVerdict} no verdict; ${c.client} by Claude Code's own requests, ${c.server} by the server's review).`);
+  L.push(`${plural(m.total, "tool decision")} in ${plural(m.sessions.length, "session")}, ${m.window.date ? windowWords(m.window) : `last ${plural(m.window.days, "day")}`} (UTC). Classifier: ${c.total} (${c.allowed} allowed, ${c.refused} refused, ${c.noVerdict} no verdict; ${c.client} by Claude Code's own requests, ${c.server} by the server's review).`);
   L.push(`By source: ${sourceRows(m).filter((r) => r.key !== "classifier").map((r) => `${r.label} ${r.total}`).join(", ") || "none besides the classifier"}.`);
   if (m.refused.length) {
     L.push(m.refused.some((r) => r.asked) ? `Refused by the classifier (judged unsafe; "asked instead" is the third refusal in a row, with no verdict of its own):` : `Refused by the classifier (judged unsafe):`);
