@@ -160,7 +160,7 @@ claude-automode-doctor report --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.1.0  what auto mode decided
+claude-automode-doctor 1.1.1  what auto mode decided
 config    /home/me/.claude  (from CLAUDE_CONFIG_DIR)
 project   /home/me/shop
 window    the last 30 days (to 2026-10-16, days are UTC dates); 4 transcripts; 9 tool decisions
@@ -198,7 +198,7 @@ claude-automode-doctor report --project /home/me/shop --session ba5a5f65
 ```
 
 ```text
-claude-automode-doctor 1.1.0  what auto mode decided
+claude-automode-doctor 1.1.1  what auto mode decided
 config    /home/me/.claude  (from CLAUDE_CONFIG_DIR)
 project   /home/me/shop  (session ba5a5f65...)
 window    the last 30 days (to 2026-10-16, days are UTC dates); 4 transcripts; 1 tool decision
@@ -243,7 +243,7 @@ claude-automode-doctor report --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.1.0  what auto mode decided
+claude-automode-doctor 1.1.1  what auto mode decided
 config    /home/me/.claude  (from CLAUDE_CONFIG_DIR)
 project   /home/me/shop
 window    the last 30 days (to 2026-10-16, days are UTC dates); 1 transcript; 4 tool decisions
@@ -277,7 +277,7 @@ claude-automode-doctor why "./scripts/release.sh --publish" --project /home/me/s
 ```
 
 ```text
-claude-automode-doctor 1.1.0  why
+claude-automode-doctor 1.1.1  why
 command   ./scripts/release.sh --publish
 tool      Bash   in /home/me/shop
 
@@ -297,7 +297,7 @@ claude-automode-doctor why "python build.py" --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.1.0  why
+claude-automode-doctor 1.1.1  why
 command   python build.py
 tool      Bash   in /home/me/shop
 
@@ -317,7 +317,7 @@ claude-automode-doctor why "git status && ls src" --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.1.0  why
+claude-automode-doctor 1.1.1  why
 command   git status && ls src
 tool      Bash   in /home/me/shop
 
@@ -339,7 +339,7 @@ claude-automode-doctor why "rm -rf ~" --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.1.0  why
+claude-automode-doctor 1.1.1  why
 command   rm -rf ~
 tool      Bash   in /home/me/shop
 
@@ -361,7 +361,7 @@ claude-automode-doctor show --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.1.0  the autoMode and permissions settings, merged
+claude-automode-doctor 1.1.1  the autoMode and permissions settings, merged
 project   /home/me/shop
 config    /home/me/.claude
 
@@ -411,7 +411,7 @@ claude-automode-doctor lint --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.1.0  lint
+claude-automode-doctor 1.1.1  lint
 project   /home/me/shop
 config    /home/me/.claude
 
@@ -457,7 +457,7 @@ claude-automode-doctor cost --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.1.0  what classification costs
+claude-automode-doctor 1.1.1  what classification costs
 measured  on Claude Code 2.1.299, Windows 11, 2026-10-16, against a fake API (zero tokens)
 
 One classified command
@@ -498,7 +498,7 @@ claude-automode-doctor suggest --project /home/me/shop
 ```
 
 ```text
-claude-automode-doctor 1.1.0  suggest
+claude-automode-doctor 1.1.1  suggest
 window    the last 30 days; commands the classifier turned back at least 2 times
 
 Bash(./scripts/release.sh *)   2x
@@ -544,7 +544,7 @@ claude-automode-doctor why "./scripts/release.sh --publish" --project /home/me/s
 ```
 
 ```text
-claude-automode-doctor 1.1.0  why
+claude-automode-doctor 1.1.1  why
 command   ./scripts/release.sh --publish
 tool      Bash   in /home/me/shop
 

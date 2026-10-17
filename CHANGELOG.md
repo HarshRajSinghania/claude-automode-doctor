@@ -4,7 +4,10 @@ All notable changes to claude-automode-doctor are written here. The format follo
 
 ## [Unreleased]
 
-- `report --markdown --since YYYY-MM-DD` names the requested date in its summary instead of converting it to a day count. Numeric windows keep their wording, and the report still has at most 17 lines and exits 0.
+## [1.1.1] - 2026-10-17
+
+- `report --markdown --since YYYY-MM-DD` names the requested date in its summary (`since 2026-10-12 (UTC)`) instead of converting it to a day count, as the text report has since 1.1.0. Numeric windows keep their wording, and the report still has at most 17 lines and exits 0.
+- Contributed by [@slophisticated](https://github.com/slophisticated) in [#4](https://github.com/nrzz/claude-automode-doctor/pull/4), for the good first issue [#3](https://github.com/nrzz/claude-automode-doctor/issues/3).
 
 ## [1.1.0] - 2026-10-16
 
@@ -23,5 +26,6 @@ All notable changes to claude-automode-doctor are written here. The format follo
 - When the classifier's model answers "overloaded", Claude Code asks it five times and then your session's own model five times, and the refusal names the session's model. `cost` says so.
 - Zero tokens for the tool. The skill is user-only, adds nothing to a request that does not use it, and hands the model a report of at most 17 lines.
 
+[1.1.1]: https://github.com/nrzz/claude-automode-doctor/releases/tag/v1.1.1
 [1.1.0]: https://github.com/nrzz/claude-automode-doctor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nrzz/claude-automode-doctor/releases/tag/v1.0.0
