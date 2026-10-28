@@ -1,1 +1,1 @@
-PLACEHOLDER_CLI
+PLACEHOLDER - real content will be set in next step if needed
