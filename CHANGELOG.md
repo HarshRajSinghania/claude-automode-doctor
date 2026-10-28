@@ -4,7 +4,11 @@ All notable changes to claude-automode-doctor are written here. The format follo
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-28
+
 - `why`: accept several commands; print one block each separated by a blank line, return `{ ok, commands }` with `--json`, and exit with the worst of the verdicts.
+- Contributed by [@yoreva-01](https://github.com/yoreva-01) in [#6](https://github.com/nrzz/claude-automode-doctor/pull/6), for the good first issue [#5](https://github.com/nrzz/claude-automode-doctor/issues/5).
+- The README's test count is the runner's again: 205 automated tests (212 with the 7 helper files), 151 passing on Windows and 150 on Linux and macOS without a binary. It had said 204 before the pull request's new test.
 
 ## [1.1.1] - 2026-10-17
 
@@ -28,6 +32,7 @@ All notable changes to claude-automode-doctor are written here. The format follo
 - When the classifier's model answers "overloaded", Claude Code asks it five times and then your session's own model five times, and the refusal names the session's model. `cost` says so.
 - Zero tokens for the tool. The skill is user-only, adds nothing to a request that does not use it, and hands the model a report of at most 17 lines.
 
+[1.2.0]: https://github.com/nrzz/claude-automode-doctor/releases/tag/v1.2.0
 [1.1.1]: https://github.com/nrzz/claude-automode-doctor/releases/tag/v1.1.1
 [1.1.0]: https://github.com/nrzz/claude-automode-doctor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nrzz/claude-automode-doctor/releases/tag/v1.0.0

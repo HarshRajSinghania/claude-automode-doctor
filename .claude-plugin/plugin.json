@@ -1,7 +1,7 @@
 {
   "name": "automode-doctor",
   "displayName": "Automode Doctor",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "What Claude Code's auto mode and its classifier decided, from your transcripts, and a lint of the autoMode settings. One user-only skill: /automode-doctor:check.",
   "author": { "name": "Naresh Prabu" },
   "homepage": "https://github.com/nrzz/claude-automode-doctor",
