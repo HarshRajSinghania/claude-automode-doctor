@@ -4,6 +4,8 @@ All notable changes to claude-automode-doctor are written here. The format follo
 
 ## [Unreleased]
 
+- `why`: accept several commands; print one block each separated by a blank line, return `{ ok, commands }` with `--json`, and exit with the worst of the verdicts.
+
 ## [1.1.1] - 2026-10-17
 
 - `report --markdown --since YYYY-MM-DD` names the requested date in its summary (`since 2026-10-12 (UTC)`) instead of converting it to a day count, as the text report has since 1.1.0. Numeric windows keep their wording, and the report still has at most 17 lines and exits 0.

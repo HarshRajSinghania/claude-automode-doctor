@@ -97,7 +97,7 @@ Read (they change nothing):
            date, from the start of that day in UTC. Exit 1 when the classifier refused or gave no
            verdict in that window. --markdown is the short report the /automode-doctor:check skill
            hands to Claude (at most 17 lines); it always exits 0
-  why      "<command>" [--project <dir>] [--tool Bash|PowerShell]
+  why      "<command>"... [--project <dir>] [--tool Bash|PowerShell]
            whether the command goes to the classifier in auto mode, or is approved without it (read-only,
            an allow rule, a file command the mode approves), or is refused by a deny rule or asked about
            (an ask rule, a critical path, the read block); which rule, from which file. Exit 1 when it
@@ -270,7 +270,9 @@ Refused by the classifier: 4 commands, 4 times (it read them and judged them uns
 
 ### `why`
 
-`why "<command>" [--project <dir>] [--tool Bash|PowerShell]` runs the command through the order Claude Code follows in auto mode, without running anything: deny and ask rules, the check for a critical path, allow rules (the broad ones are dropped, and `autoMode.classifyAllShell` suspends all shell ones), read-only commands and the file commands the mode approves inside the working folders, and then the classifier. It reads the settings of the project (the current folder, or `--project`). It exits 1 when the command would be refused or asked about.
+`why "<command>"... [--project <dir>] [--tool Bash|PowerShell]` runs the command through the order Claude Code follows in auto mode, without running anything: deny and ask rules, the check for a critical path, allow rules (the broad ones are dropped, and `autoMode.classifyAllShell` suspends all shell ones), read-only commands and the file commands the mode approves inside the working folders, and then the classifier. It reads the settings of the project (the current folder, or `--project`). It exits 1 when the command would be refused or asked about.
+
+- Several commands can be given: `why` prints one block per command in the order given, separated by a blank line; `--json` returns one document with a `commands` array; the exit code is the worst of the verdicts.
 
 ```text
 claude-automode-doctor why "./scripts/release.sh --publish" --project /home/me/shop
@@ -598,7 +600,7 @@ lint     { ok, project, configDir,
            findings: [ { id, severity, effect, evidence, scope, file, display, line, keyPath, message, fix, issue } ],
            counts: { error, warning, note }, files }
 why      { ok, tool, command, outcome, basis, summary, rule, parts: [ { text, status, detail, rule } ], dropped, notes,
-           engine, suggestion, project, cwd, configDir }
+           engine, suggestion, project, cwd, configDir } (with several commands: { ok, commands: [ ... ] })
 cost     { ok, measured: { version, date, platform }, stages: [ { stage, model, maxTokens, systemChars, userChars, requestChars,
            systemTokens, requestTokens } ], perCommand, prompt, billing, transcripts }
 suggest  { ok, project, window, min, includeJudged,
@@ -609,6 +611,7 @@ restore  { ok, scope, display, restored, from, savedCurrent, ... }
 ```
 
 - `why.outcome` is `static` (approved without the classifier), `classifier`, `refused` (a rule or a built-in check refuses it) or `prompt` (it asks you; `claude -p` refuses it). `basis` says why: `read-only`, `allow-rule`, `mode`, `no-rule`, and so on.
+- With several commands, `why` returns `{ ok, commands: [ ... ] }`, one entry per command in the order given, each entry the single-command document.
 - `report.window` is the window that was asked for: `days` is the days it covers (`--since 7` is 7; `--since 2026-10-01` is the days from that date to now, rounded up), `since` is its first UTC day, `until` its last, and `date` is the day `--since` named, `null` when a number of days was asked.
 - `lint.findings[].evidence` says what a finding rests on: `binary` (put to the real Claude Code binary), `docs` (the documentation, not asked of the binary) or `issue` (an issue thread, with the premise put to the binary). `effect` says what Claude Code does about it: `file` (the whole file is ignored), `list`, `key`, or `none`.
 - `report.decisions[].source` is one of `static`, `mode`, `rule`, `classifier`, `hook`, `safety`, `user`, `unrecorded`; `result` is `allowed`, `refused`, `no-verdict` or `unknown`. `via` is `client` (Claude Code's own classifier requests) or `server` (the review done with the model request). `fallback` is `repeated-blocks` for an asked-instead call.

@@ -26,7 +26,7 @@ test("usage errors exit 2 with a message, and with --json a JSON error", async (
     [["report", "--since", "2026-10-17"], /--since needs a number of days, such as --since 7, or a date, such as --since 2026-10-01/],
     [["report", "--session", "zz"], /--session needs a session id/], [["report", "--project"], /--project needs a folder/], [["report", "--user"], /--user does not belong to report/],
     [["report", "extra"], /report takes no arguments/], [["report", "--json=1"], /does not take a value/],
-    [["why"], /why needs the command in quotes/], [["why", "a", "b"], /why needs the command in quotes/], [["why", "ls", "--tool", "Zsh"], /--tool is Bash or PowerShell/], [["why", "ls", "--min", "2"], /--min does not belong to why/],
+    [["why"], /why needs the command in quotes/], [["why", "ls", "--tool", "Zsh"], /--tool is Bash or PowerShell/], [["why", "ls", "--min", "2"], /--min does not belong to why/],
     [["show", "x"], /show takes no arguments/], [["show", "--markdown"], /--markdown does not belong to show/], [["lint", "--since", "3"], /--since does not belong to lint/],
     [["cost", "--write"], /--write does not belong to cost/], [["suggest", "--min", "0"], /--min needs a number/], [["suggest", "--dry-run"], /--dry-run belongs to --write/], [["suggest", "--include-judged"], /--include-judged belongs to --write/],
     [["suggest", "--write"], /suggest --write needs the settings file/], [["suggest", "--write", "--user", "--local"], /choose one settings file/],
@@ -85,6 +85,56 @@ test("why: the answer, the rule and its file, the parts of a line, and the allow
   const j = (await run(["why", "mkdir out", "--json"], w)).json();
   assert.deepEqual([j.outcome, j.basis], ["static", "mode"]);
   assert.equal(j.tool, "Bash");
+});
+
+test("why: several commands, the order, the exit code, and single command compatibility", async () => {
+  const w = world("why-many", {
+    user: {
+      permissions: {
+        allow: ["Bash(git status)"],
+        ask: ["Bash(git push *)"],
+        deny: ["Bash(rm -rf *)"],
+      },
+    },
+  });
+
+  // single command: exact output preserved
+  const single = await run(["why", "git status"], w);
+  assert.equal(single.code, 0);
+  assert.match(single.out, /Approved without the classifier\./);
+
+  const singleJson = (await run(["why", "git status", "--json"], w)).json();
+  assert.equal(singleJson.ok, true);
+  assert.equal(singleJson.command, "git status");
+  assert.equal(singleJson.outcome, "static");
+  assert.equal(singleJson.commands, undefined);
+
+  // three commands: order preserved, exit code 1 (prompt), blocks separated by blank line
+  const b1 = (await run(["why", "git status"], w)).out;
+  const b2 = (await run(["why", "npm test"], w)).out;
+  const b3 = (await run(["why", "git push origin main"], w)).out;
+  const multi = await run(["why", "git status", "npm test", "git push origin main"], w);
+  assert.equal(multi.code, 1);
+  assert.equal(multi.out, `${b1}\n${b2}\n${b3}`);
+  assert.match(b1, /Approved without the classifier\./);
+  assert.match(b2, /Goes to the classifier\./);
+  assert.match(b3, /Asks you; the classifier is not asked/);
+
+  // two commands that are allowed / classifier exit 0
+  const okMulti = await run(["why", "git status", "npm test"], w);
+  assert.equal(okMulti.code, 0);
+
+  // JSON form: { ok: true, commands: [ ... ] }
+  const multiJson = (await run(["why", "git status", "npm test", "git push origin main", "--json"], w)).json();
+  assert.equal(multiJson.ok, true);
+  assert.equal(Array.isArray(multiJson.commands), true);
+  assert.equal(multiJson.commands.length, 3);
+  assert.equal(multiJson.commands[0].command, "git status");
+  assert.equal(multiJson.commands[0].outcome, "static");
+  assert.equal(multiJson.commands[1].command, "npm test");
+  assert.equal(multiJson.commands[1].outcome, "classifier");
+  assert.equal(multiJson.commands[2].command, "git push origin main");
+  assert.equal(multiJson.commands[2].outcome, "prompt");
 });
 
 test("cost: the measured sizes, who pays, and what the transcripts show", async () => {

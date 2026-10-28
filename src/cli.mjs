@@ -22,7 +22,7 @@ Read (they change nothing):
            date, from the start of that day in UTC. Exit 1 when the classifier refused or gave no
            verdict in that window. --markdown is the short report the /automode-doctor:check skill
            hands to Claude (at most 17 lines); it always exits 0
-  why      "<command>" [--project <dir>] [--tool Bash|PowerShell]
+  why      "<command>"... [--project <dir>] [--tool Bash|PowerShell]
            whether the command goes to the classifier in auto mode, or is approved without it (read-only,
            an allow rule, a file command the mode approves), or is refused by a deny rule or asked about
            (an ask rule, a critical path, the read block); which rule, from which file. Exit 1 when it
@@ -201,10 +201,16 @@ export async function main(argv, io = {}) {
         return m.classifier.refused + m.classifier.noVerdict > 0 ? 1 : 0;
       }
       case "why": {
-        if (o.positional.length !== 1) throw new UsageError('why needs the command in quotes, as in: why "git push origin main"');
-        const m = buildWhyModel({ ...common, project: projectDir, command: o.positional[0], tool: o.tool || "Bash" });
-        emit(m, renderWhy(m, { color }));
-        return m.outcome === "refused" || m.outcome === "prompt" ? 1 : 0;
+        if (o.positional.length === 0) throw new UsageError('why needs the command in quotes, as in: why "git push origin main"');
+        const models = o.positional.map((command) =>
+          buildWhyModel({ ...common, project: projectDir, command, tool: o.tool || "Bash" })
+        );
+        if (models.length === 1) {
+          emit(models[0], renderWhy(models[0], { color }));
+        } else {
+          emit({ ok: true, commands: models }, renderWhy(models, { color }));
+        }
+        return models.some((m) => m.outcome === "refused" || m.outcome === "prompt") ? 1 : 0;
       }
       case "show": {
         if (o.positional.length) throw new UsageError(`show takes no arguments (got "${o.positional[0]}")`);

@@ -253,6 +253,12 @@ const OUTCOME_TEXT = {
 };
 
 export function renderWhy(m, { color = false } = {}) {
+  if (Array.isArray(m)) {
+    return `${m.map((item) => renderWhy(item, { color }).trimEnd()).join("\n\n")}\n`;
+  }
+  if (m && Array.isArray(m.commands)) {
+    return `${m.commands.map((item) => renderWhy(item, { color }).trimEnd()).join("\n\n")}\n`;
+  }
   const p = palette(color);
   const out = [];
   out.push(`${p.bold(`claude-automode-doctor ${VERSION}`)}  why`);
