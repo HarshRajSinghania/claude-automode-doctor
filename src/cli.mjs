@@ -277,6 +277,6 @@ export async function main(argv, io = {}) {
     }
   } catch (e) {
     if (e instanceof UsageError) return fail(e.message, 2);
-    return fail(e.stack || String(e), 2);
+    return fail(e && e.message ? e.message : String(e), 2);
   }
 }
